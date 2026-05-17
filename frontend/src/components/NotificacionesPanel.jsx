@@ -253,8 +253,8 @@ export default function NotificacionesPanel({ sol, formularios }) {
         </Button>
       </Box>
 
-      <NotifForm tipo="ase" sol={sol} formularios={formularios} open={openAse} onClose={() => setOpenAse(false)} />
-      <NotifForm tipo="emp" sol={sol} formularios={formularios} open={openEmp} onClose={() => setOpenEmp(false)} />
+      {openAse && <NotifForm tipo="ase" sol={sol} formularios={formularios} open onClose={() => setOpenAse(false)} />}
+      {openEmp && <NotifForm tipo="emp" sol={sol} formularios={formularios} open onClose={() => setOpenEmp(false)} />}
     </Box>
   )
 }
