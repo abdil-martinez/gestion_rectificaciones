@@ -1149,13 +1149,13 @@ export default function SolicitudWizard() {
         } catch { /* continúa con el siguiente */ }
       }
 
-      // Enviar notificación por correo
-      try {
-        await enviarNotificacion(solicitudId)
-        toast.success('Notificación enviada por correo', { duration: 3000 })
-      } catch {
-        toast('No se pudo enviar la notificación por correo', { icon: '⚠️' })
-      }
+      // Envío de correo deshabilitado temporalmente
+      // try {
+      //   await enviarNotificacion(solicitudId)
+      //   toast.success('Notificación enviada por correo', { duration: 3000 })
+      // } catch {
+      //   toast('No se pudo enviar la notificación por correo', { icon: '⚠️' })
+      // }
 
       const nFpc  = fpcRows.filter((r) => r.periodo).length
       const nDocs = docsSeleccionados.length

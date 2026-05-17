@@ -135,9 +135,10 @@ class SolicitudViewSet(viewsets.ModelViewSet):
             ip=get_client_ip(request),
         )
 
-        if nuevo_estado == 'PEND':
-            from .email_utils import enviar_notificacion_solicitud
-            enviar_notificacion_solicitud(solicitud)
+        # Envío de correo deshabilitado temporalmente
+        # if nuevo_estado == 'PEND':
+        #     from .email_utils import enviar_notificacion_solicitud
+        #     enviar_notificacion_solicitud(solicitud)
 
         return Response(SolicitudDetailSerializer(solicitud, context={'request': request}).data)
 
