@@ -9,8 +9,8 @@ import RateReviewIcon from '@mui/icons-material/RateReview'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import WarningIcon from '@mui/icons-material/Warning'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, Cell, PieChart, Pie,
 } from 'recharts'
 import { useQuery } from '@tanstack/react-query'
 import dayjs from 'dayjs'
@@ -24,6 +24,14 @@ const ESTADO_BAR_COLORS = {
   REV: '#e65100', APRO: '#4caf50', RECH: '#f44336',
   DEV: '#9c27b0', FIN: '#1b5e20', ANU: '#b71c1c',
 }
+
+const ESTADO_LABELS = {
+  BOR: 'Borrador', PEND: 'Pendiente', ASIG: 'Asignado',
+  REV: 'En Revisión', APRO: 'Aprobado', RECH: 'Rechazado',
+  DEV: 'Devuelto',  FIN: 'Finalizado', ANU: 'Anulado',
+}
+
+const TR_COLORS = ['#CBab58', '#2196f3', '#4caf50', '#f44336', '#9c27b0']
 
 function KpiCard({ title, value, icon, color, subtitle }) {
   return (
@@ -80,6 +88,20 @@ export default function Dashboard() {
         codigo: key,
       }))
     : []
+
+  // Distribución por tipo regional + estado → stacked bar chart
+  const rawTRE      = data?.por_tipo_regional_estado || []
+  const tiposReg    = [...new Set(rawTRE.map((r) => r.tipo_regional))].sort()
+  const estadosUsados = [...new Set(rawTRE.map((r) => r.estado))]
+  const treChartData = tiposReg.map((tr) => {
+    const row = { name: tr, _total: 0 }
+    estadosUsados.forEach((e) => {
+      const found = rawTRE.find((r) => r.tipo_regional === tr && r.estado === e)
+      row[e] = found?.total || 0
+      row._total += found?.total || 0
+    })
+    return row
+  })
 
   const pendientes = data?.por_estado?.PEND?.total || 0
   const enRevision = (data?.por_estado?.REV?.total || 0) + (data?.por_estado?.ASIG?.total || 0)
@@ -232,6 +254,89 @@ export default function Dashboard() {
                     Existen solicitudes que han superado su fecha límite de atención.
                   </Typography>
                 </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        )}
+
+        {/* Distribución por Tipo Regional y Estado */}
+        {treChartData.length > 0 && (
+          <Grid item xs={12}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 700 }}>
+                  Distribución por Tipo de Regional y Estado
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                  Composición de estados dentro de cada tipo regional
+                </Typography>
+
+                {/* Pie charts — uno por tipo regional */}
+                <Grid container spacing={2} justifyContent="center">
+                  {treChartData.map((row, idx) => {
+                    const pieData = estadosUsados
+                      .filter((e) => row[e] > 0)
+                      .map((e) => ({ name: ESTADO_LABELS[e] || e, value: row[e], estado: e }))
+                    return (
+                      <Grid item xs={12} sm={6} md={12 / Math.min(treChartData.length, 4)} key={row.name}>
+                        <Box sx={{ textAlign: 'center' }}>
+                          {/* Encabezado del tipo */}
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, mb: 0.5, px: 2, py: 0.5, borderRadius: 2, bgcolor: `${TR_COLORS[idx % TR_COLORS.length]}18`, border: `1px solid ${TR_COLORS[idx % TR_COLORS.length]}44` }}>
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: TR_COLORS[idx % TR_COLORS.length] }} />
+                            <Typography variant="subtitle2" fontWeight={800} sx={{ color: TR_COLORS[idx % TR_COLORS.length] }}>
+                              {row.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">({row._total})</Typography>
+                          </Box>
+
+                          {/* Pie */}
+                          <PieChart width={200} height={180} style={{ margin: '0 auto' }}>
+                            <Pie
+                              data={pieData}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={48}
+                              outerRadius={78}
+                              paddingAngle={2}
+                              dataKey="value"
+                            >
+                              {pieData.map((entry) => (
+                                <Cell key={entry.estado} fill={ESTADO_BAR_COLORS[entry.estado] || '#607d8b'} />
+                              ))}
+                            </Pie>
+                            <Tooltip
+                              contentStyle={{ backgroundColor: NAVY2, border: `1px solid ${ORO}`, borderRadius: 8, fontSize: 12 }}
+                              itemStyle={{ color: '#fff' }}
+                              formatter={(value, name) => [`${value} sol.`, name]}
+                            />
+                          </PieChart>
+
+                          {/* Total centrado en el donut */}
+                          <Typography variant="h5" fontWeight={800} sx={{ color: TR_COLORS[idx % TR_COLORS.length], mt: -1.5, mb: 1 }}>
+                            {row._total}
+                          </Typography>
+
+                          {/* Mini leyenda de estados con valor */}
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4, alignItems: 'flex-start', maxWidth: 190, mx: 'auto' }}>
+                            {pieData.map((entry) => (
+                              <Box key={entry.estado} sx={{ display: 'flex', alignItems: 'center', gap: 0.8, width: '100%' }}>
+                                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: ESTADO_BAR_COLORS[entry.estado], flexShrink: 0 }} />
+                                <Typography variant="caption" color="text.secondary" sx={{ flex: 1, textAlign: 'left', fontSize: '0.72rem' }}>
+                                  {entry.name}
+                                </Typography>
+                                <Chip
+                                  label={entry.value}
+                                  size="small"
+                                  sx={{ height: 18, fontSize: '0.68rem', fontWeight: 700, bgcolor: `${ESTADO_BAR_COLORS[entry.estado]}22`, color: ESTADO_BAR_COLORS[entry.estado] }}
+                                />
+                              </Box>
+                            ))}
+                          </Box>
+                        </Box>
+                      </Grid>
+                    )
+                  })}
+                </Grid>
               </CardContent>
             </Card>
           </Grid>

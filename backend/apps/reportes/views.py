@@ -35,6 +35,13 @@ class DashboardView(APIView):
             .order_by('-total')[:10]
         )
 
+        por_tipo_regional_estado = list(
+            Solicitud.objects
+            .values('regional__tipo_regional__nombre', 'estado')
+            .annotate(total=Count('id'))
+            .order_by('regional__tipo_regional__nombre', 'estado')
+        )
+
         top_causales = list(
             Solicitud.objects.filter(tipo_causal__isnull=False)
             .values('tipo_causal__nombre')
@@ -66,13 +73,21 @@ class DashboardView(APIView):
                 tiempo_promedio = sum(tiempos) / len(tiempos)
 
         return Response({
-            'total_solicitudes':       total,
-            'por_estado':              por_estado,
-            'solicitudes_vencidas':    vencidas,
-            'tiempo_promedio_atencion': tiempo_promedio,
-            'solicitudes_por_regional': por_regional,
-            'top_causales':            top_causales,
-            'ultimas_solicitudes':     ultimas_data,
+            'total_solicitudes':          total,
+            'por_estado':                 por_estado,
+            'solicitudes_vencidas':       vencidas,
+            'tiempo_promedio_atencion':   tiempo_promedio,
+            'solicitudes_por_regional':   por_regional,
+            'top_causales':               top_causales,
+            'ultimas_solicitudes':        ultimas_data,
+            'por_tipo_regional_estado': [
+                {
+                    'tipo_regional': row['regional__tipo_regional__nombre'] or 'Sin tipo',
+                    'estado':        row['estado'],
+                    'total':         row['total'],
+                }
+                for row in por_tipo_regional_estado
+            ],
         })
 
 
@@ -153,6 +168,79 @@ class ReporteCausalView(APIView):
         )
 
         return Response({'por_causal': por_causal})
+
+
+class ReporteTipoRegionalView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.solicitudes.models import Solicitud
+
+        fecha_desde = request.query_params.get('fecha_desde')
+        fecha_hasta = request.query_params.get('fecha_hasta')
+
+        qs = Solicitud.objects.filter(regional__isnull=False)
+        if fecha_desde:
+            qs = qs.filter(created_at__date__gte=fecha_desde)
+        if fecha_hasta:
+            qs = qs.filter(created_at__date__lte=fecha_hasta)
+
+        por_tipo = list(
+            qs.values(
+                'regional__tipo_regional__id',
+                'regional__tipo_regional__nombre',
+            )
+            .annotate(
+                total=Count('id'),
+                finalizadas=Count('id', filter=Q(estado='FIN')),
+                aprobadas=Count('id',   filter=Q(estado='APRO')),
+                rechazadas=Count('id',  filter=Q(estado='RECH')),
+            )
+            .order_by('-total')
+        )
+
+        por_regional = list(
+            qs.values(
+                'regional__tipo_regional__nombre',
+                'regional__id',
+                'regional__nombre',
+            )
+            .annotate(
+                total=Count('id'),
+                finalizadas=Count('id', filter=Q(estado='FIN')),
+                aprobadas=Count('id',   filter=Q(estado='APRO')),
+            )
+            .order_by('regional__tipo_regional__nombre', '-total')
+        )
+
+        result_tipo = [
+            {
+                'id':         row['regional__tipo_regional__id'],
+                'nombre':     row['regional__tipo_regional__nombre'] or 'Sin tipo',
+                'total':      row['total'],
+                'finalizadas': row['finalizadas'],
+                'aprobadas':  row['aprobadas'],
+                'rechazadas': row['rechazadas'],
+            }
+            for row in por_tipo
+        ]
+
+        result_regional = [
+            {
+                'tipo_regional': row['regional__tipo_regional__nombre'] or 'Sin tipo',
+                'regional_id':   row['regional__id'],
+                'regional':      row['regional__nombre'],
+                'total':         row['total'],
+                'finalizadas':   row['finalizadas'],
+                'aprobadas':     row['aprobadas'],
+            }
+            for row in por_regional
+        ]
+
+        return Response({
+            'por_tipo_regional': result_tipo,
+            'por_regional':      result_regional,
+        })
 
 
 class ExportarExcelView(APIView):

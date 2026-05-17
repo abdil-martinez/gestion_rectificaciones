@@ -815,9 +815,27 @@ function StepSolicitante({ control }) {
 }
 
 function StepResumen({ getValues, fpcRows, docSelections }) {
-  const values  = getValues()
-  const nFpc    = fpcRows.filter((r) => r.periodo).length
-  const nDocs   = Object.values(docSelections).filter((s) => s.checked).length
+  const values     = getValues()
+  const fpcValidos = fpcRows.filter((r) => r.periodo)
+  const docsChecked = Object.entries(docSelections).filter(([, s]) => s.checked)
+
+  const { data: tiposPlanilla = [] } = useQuery({
+    queryKey: ['tipo-planilla'],
+    queryFn:  () => catalogosApi.tipoPlanilla.getAll().then((r) => r.data.results || r.data),
+    staleTime: 5 * 60_000,
+  })
+  const { data: catalogosDocs = [] } = useQuery({
+    queryKey: ['catalogo-documentos'],
+    queryFn:  () => catalogosApi.documentos.getAll().then((r) => r.data.results || r.data),
+    staleTime: 5 * 60_000,
+  })
+
+  const getPlanilla  = (id) => tiposPlanilla.find((t) => t.id === Number(id))?.nombre || '—'
+  const getDocInfo   = (id) => catalogosDocs.find((d) => d.id === Number(id))
+
+  const headSx = { py: 0.8, px: 1, fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', color: ORO, borderBottom: `2px solid #2A3D6B`, whiteSpace: 'nowrap' }
+  const cellSx = { py: 0.6, px: 1, fontSize: '0.82rem', borderBottom: '1px solid #2A3D6B' }
+
   return (
     <Box>
       <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2, color: ORO }}>
@@ -826,35 +844,39 @@ function StepResumen({ getValues, fpcRows, docSelections }) {
       <Alert severity="info" sx={{ mb: 2 }}>
         Revise los datos antes de enviar. La solicitud se creará en estado <strong>Borrador</strong>.
       </Alert>
-      <Grid container spacing={1.5}>
+
+      {/* Tarjetas de resumen general */}
+      <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
         <Grid item xs={12} sm={6}>
-          <Card sx={{ bgcolor: '#0F1932' }}>
+          <Card variant="outlined">
             <CardContent sx={{ py: 1.5 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>Asegurado</Typography>
               <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5 }}>
-                {[values.asegurado_data?.nombre, values.asegurado_data?.ap_paterno, values.asegurado_data?.ap_materno].filter(Boolean).join(' ')}
+                {[values.asegurado_data?.nombre, values.asegurado_data?.ap_paterno, values.asegurado_data?.ap_materno].filter(Boolean).join(' ') || '—'}
               </Typography>
-              <Typography variant="caption" color="text.secondary">CI: {values.asegurado_data?.cedula || '—'}</Typography>
+              <Typography variant="caption" color="text.secondary">CI: {values.asegurado_data?.cedula || '—'}{values.asegurado_data?.cua ? ` | CUA: ${values.asegurado_data.cua}` : ''}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6}>
-          <Card sx={{ bgcolor: '#0F1932' }}>
+          <Card variant="outlined">
             <CardContent sx={{ py: 1.5 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>Empleador</Typography>
               <Typography variant="body2" fontWeight={600} sx={{ mt: 0.5 }}>
                 {values.empleador_data?.nombre_razon_social || '—'}
               </Typography>
-              <Typography variant="caption" color="text.secondary">NIT: {values.empleador_data?.nit || '—'}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                N° Doc: {values.empleador_data?.numero_documento_identidad || '—'}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6}>
-          <Card sx={{ bgcolor: '#0F1932' }}>
+          <Card variant="outlined">
             <CardContent sx={{ py: 1.5 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>Detalle</Typography>
               <Typography variant="body2" sx={{ mt: 0.5 }}>
-                Prioridad: <strong>{values.prioridad || 'NORMAL'}</strong> | Recepción: <strong>{values.fecha_recepcion || '—'}</strong>
+                Prioridad: <strong>{values.prioridad || 'NORMAL'}</strong>{values.fecha_recepcion ? ` | Recepción: ${values.fecha_recepcion}` : ''}
               </Typography>
               {values.detalle_causal && (
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{values.detalle_causal}</Typography>
@@ -863,19 +885,112 @@ function StepResumen({ getValues, fpcRows, docSelections }) {
           </Card>
         </Grid>
         <Grid item xs={12} sm={6}>
-          <Card sx={{ bgcolor: '#0F1932' }}>
+          <Card variant="outlined">
             <CardContent sx={{ py: 1.5 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>Formularios y Documentos</Typography>
+              <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>Totales</Typography>
               <Typography variant="body2" sx={{ mt: 0.5 }}>
-                <strong>{nFpc}</strong> formulario(s) FPC a guardar
+                <strong>{fpcValidos.length}</strong> formulario(s) FPC
               </Typography>
               <Typography variant="body2">
-                <strong>{nDocs}</strong> documento(s) marcados como recibidos
+                <strong>{docsChecked.length}</strong> documento(s) recibidos
               </Typography>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+
+      {/* Tabla FPC */}
+      <Box sx={{ mb: 2.5 }}>
+        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: ORO }}>
+          Formularios FPC ({fpcValidos.length})
+        </Typography>
+        {fpcValidos.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
+            Sin formularios FPC registrados.
+          </Typography>
+        ) : (
+          <Box sx={{ overflowX: 'auto', border: '1px solid #2A3D6B', borderRadius: 1 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={headSx}>#</TableCell>
+                  <TableCell sx={headSx}>N° FPC</TableCell>
+                  <TableCell sx={headSx}>Período</TableCell>
+                  <TableCell sx={headSx}>Tipo Planilla</TableCell>
+                  <TableCell sx={{ ...headSx, textAlign: 'right' }}>Total Ganado (Bs.)</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {fpcValidos.map((row, idx) => (
+                  <TableRow key={idx}>
+                    <TableCell sx={{ ...cellSx, color: 'text.secondary' }}>{idx + 1}</TableCell>
+                    <TableCell sx={{ ...cellSx, fontFamily: 'monospace' }}>{row.numero || '—'}</TableCell>
+                    <TableCell sx={cellSx}>{row.periodo}</TableCell>
+                    <TableCell sx={cellSx}>{getPlanilla(row.tipo_planilla)}</TableCell>
+                    <TableCell sx={{ ...cellSx, textAlign: 'right', fontWeight: 600 }}>
+                      {row.total_ganado ? Number(row.total_ganado).toLocaleString('es-BO', { minimumFractionDigits: 2 }) : '0.00'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {fpcValidos.length > 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} sx={{ ...cellSx, fontWeight: 700, textAlign: 'right', color: ORO }}>Total</TableCell>
+                    <TableCell sx={{ ...cellSx, textAlign: 'right', fontWeight: 800, color: ORO }}>
+                      {fpcValidos.reduce((s, r) => s + (Number(r.total_ganado) || 0), 0)
+                        .toLocaleString('es-BO', { minimumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </Box>
+        )}
+      </Box>
+
+      {/* Lista de documentos */}
+      <Box>
+        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1, color: ORO }}>
+          Documentación de Respaldo ({docsChecked.length})
+        </Typography>
+        {docsChecked.length === 0 ? (
+          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', pl: 1 }}>
+            Sin documentos marcados como recibidos.
+          </Typography>
+        ) : (
+          <Box sx={{ border: '1px solid #2A3D6B', borderRadius: 1, overflow: 'hidden' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={headSx}>Código</TableCell>
+                  <TableCell sx={headSx}>Documento</TableCell>
+                  <TableCell sx={headSx}>Archivo adjunto</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {docsChecked.map(([docId, sel]) => {
+                  const doc = getDocInfo(docId)
+                  return (
+                    <TableRow key={docId}>
+                      <TableCell sx={{ ...cellSx, fontFamily: 'monospace', color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                        {doc?.codigo || '—'}
+                      </TableCell>
+                      <TableCell sx={cellSx}>{doc?.descripcion || `Doc #${docId}`}</TableCell>
+                      <TableCell sx={cellSx}>
+                        {sel.file
+                          ? <Chip icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
+                              label={sel.file.name} size="small"
+                              sx={{ bgcolor: `${ORO}22`, color: ORO, fontSize: '0.72rem', maxWidth: 200 }} />
+                          : <Typography variant="caption" color="text.secondary">Sin archivo</Typography>
+                        }
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </Box>
+        )}
+      </Box>
     </Box>
   )
 }
