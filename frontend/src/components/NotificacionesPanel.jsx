@@ -1,19 +1,28 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   Grid, TextField, Typography, Table, TableHead, TableRow,
   TableCell, TableBody, Tabs, Tab, CircularProgress, Divider,
+  IconButton, Tooltip, Chip,
 } from '@mui/material'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import NotificationsIcon from '@mui/icons-material/Notifications'
 import PersonIcon from '@mui/icons-material/Person'
 import BusinessIcon from '@mui/icons-material/Business'
+import UploadFileIcon from '@mui/icons-material/UploadFile'
+import AttachFileIcon from '@mui/icons-material/AttachFile'
 import { pdf } from '@react-pdf/renderer'
 import dayjs from 'dayjs'
 import toast from 'react-hot-toast'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ORO, NAVY2 } from '../theme'
 import NotificacionAsePDF from './NotificacionAsePDF'
 import NotificacionEmpPDF from './NotificacionEmpPDF'
+import { getDocumentosRespaldo, createDocumentoRespaldo, updateDocumentoRespaldo } from '../api/solicitudes'
+
+const OBS_ASE = '__NOTIF_ASE__'
+const OBS_EMP = '__NOTIF_EMP__'
+const BASE_URL = 'http://localhost:8000'
 
 const headSx = { py: 0.7, px: 1, color: ORO, fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', borderBottom: `2px solid #2A3D6B`, whiteSpace: 'nowrap' }
 const cellSx = { py: 0.6, px: 1, fontSize: '0.82rem', borderBottom: '1px solid #2A3D6B' }
@@ -81,7 +90,6 @@ function NotifForm({ tipo, sol, formularios, open, onClose }) {
 
         {tab === 0 && (
           <Grid container spacing={2}>
-            {/* Encabezado del documento */}
             <Grid item xs={12}>
               <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>
                 Encabezado del documento
@@ -104,7 +112,6 @@ function NotifForm({ tipo, sol, formularios, open, onClose }) {
                 helperText='Ej: APROBADA, RECHAZADA, OBSERVADA' />
             </Grid>
 
-            {/* Datos del destinatario (solo lectura) */}
             <Grid item xs={12} sx={{ mt: 1 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>
                 {isAse ? 'Datos del Asegurado (pre-llenados)' : 'Datos del Empleador (pre-llenados)'}
@@ -140,7 +147,6 @@ function NotifForm({ tipo, sol, formularios, open, onClose }) {
               </>
             )}
 
-            {/* Firma */}
             <Grid item xs={12} sx={{ mt: 1 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>
                 Firma
@@ -217,9 +223,100 @@ function NotifForm({ tipo, sol, formularios, open, onClose }) {
   )
 }
 
+/* ── Fila de notificación: botón generar + botón subir firmado ─────── */
+function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc }) {
+  const isAse     = tipo === 'ase'
+  const obsKey    = isAse ? OBS_ASE : OBS_EMP
+  const [open, setOpen]         = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileRef   = useRef(null)
+
+  const existingDoc = notifDocs.find((d) => d.observacion === obsKey)
+
+  const handleUpload = async (file) => {
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('archivo', file)
+      if (existingDoc) {
+        await updateDocumentoRespaldo(existingDoc.id, fd)
+      } else {
+        fd.append('solicitud', solId)
+        fd.append('observacion', obsKey)
+        await createDocumentoRespaldo(fd)
+      }
+      qc.invalidateQueries(['docs-respaldo', solId])
+      toast.success('Documento firmado adjuntado')
+    } catch { toast.error('Error al subir el documento') }
+    finally { setUploading(false) }
+  }
+
+  return (
+    <Box>
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <Button
+          fullWidth variant="outlined"
+          startIcon={isAse ? <PersonIcon /> : <BusinessIcon />}
+          onClick={() => setOpen(true)}
+          sx={{ borderColor: ORO, color: ORO, justifyContent: 'flex-start', px: 2,
+            '&:hover': { bgcolor: `${ORO}18`, borderColor: ORO } }}
+        >
+          {isAse ? 'Notif. Asegurado' : 'Notif. Empleador'}
+        </Button>
+        <Tooltip title={existingDoc ? 'Reemplazar notificación firmada' : 'Subir notificación firmada'}>
+          <IconButton
+            size="small"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            sx={{ border: '1px solid #2A3D6B', borderRadius: 1, px: 1.2, flexShrink: 0 }}
+          >
+            {uploading
+              ? <CircularProgress size={16} />
+              : <UploadFileIcon sx={{ color: ORO, fontSize: 20 }} />}
+          </IconButton>
+        </Tooltip>
+      </Box>
+
+      <input
+        type="file"
+        ref={fileRef}
+        style={{ display: 'none' }}
+        onChange={(e) => { if (e.target.files[0]) handleUpload(e.target.files[0]); e.target.value = '' }}
+      />
+
+      {existingDoc?.archivo && (
+        <Chip
+          size="small"
+          icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
+          label={isAse ? 'Ver notif. Aseg. firmada' : 'Ver notif. Empl. firmada'}
+          component="a"
+          href={`${BASE_URL}${existingDoc.archivo}`}
+          target="_blank"
+          clickable
+          sx={{ mt: 0.5, bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem' }}
+        />
+      )}
+
+      {open && (
+        <NotifForm
+          tipo={tipo} sol={sol} formularios={formularios}
+          open onClose={() => setOpen(false)}
+        />
+      )}
+    </Box>
+  )
+}
+
+/* ── Panel principal ────────────────────────────────────────────────── */
 export default function NotificacionesPanel({ sol, formularios }) {
-  const [openAse, setOpenAse] = useState(false)
-  const [openEmp, setOpenEmp] = useState(false)
+  const solId = sol?.id
+  const qc    = useQueryClient()
+
+  const { data: notifDocs = [] } = useQuery({
+    queryKey: ['docs-respaldo', solId],
+    queryFn:  () => getDocumentosRespaldo(solId).then((r) => r.data.results || r.data),
+    enabled:  !!solId,
+  })
 
   return (
     <Box>
@@ -230,31 +327,12 @@ export default function NotificacionesPanel({ sol, formularios }) {
         </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Genere la notificación oficial de respuesta a la solicitud.
+        Genere la notificación y adjunte el documento firmado.
       </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <Button
-          fullWidth variant="outlined"
-          startIcon={<PersonIcon />}
-          onClick={() => setOpenAse(true)}
-          sx={{ borderColor: ORO, color: ORO, justifyContent: 'flex-start', px: 2,
-            '&:hover': { bgcolor: `${ORO}18`, borderColor: ORO } }}
-        >
-          Notif. Asegurado
-        </Button>
-        <Button
-          fullWidth variant="outlined"
-          startIcon={<BusinessIcon />}
-          onClick={() => setOpenEmp(true)}
-          sx={{ borderColor: ORO, color: ORO, justifyContent: 'flex-start', px: 2,
-            '&:hover': { bgcolor: `${ORO}18`, borderColor: ORO } }}
-        >
-          Notif. Empleador
-        </Button>
+        <NotifRow tipo="ase" sol={sol} formularios={formularios} solId={solId} notifDocs={notifDocs} qc={qc} />
+        <NotifRow tipo="emp" sol={sol} formularios={formularios} solId={solId} notifDocs={notifDocs} qc={qc} />
       </Box>
-
-      {openAse && <NotifForm tipo="ase" sol={sol} formularios={formularios} open onClose={() => setOpenAse(false)} />}
-      {openEmp && <NotifForm tipo="emp" sol={sol} formularios={formularios} open onClose={() => setOpenEmp(false)} />}
     </Box>
   )
 }

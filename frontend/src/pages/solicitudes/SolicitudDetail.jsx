@@ -334,8 +334,14 @@ function DocumentosRespaldo({ solicitudId }) {
   )
 }
 
+const NOTIF_KEYS = ['__NOTIF_ASE__', '__NOTIF_EMP__']
+
 function DocsSidebar({ solicitudId, sol }) {
-  const [pdfLoading, setPdfLoading] = useState(false)
+  const [pdfLoading, setPdfLoading]     = useState(false)
+  const [uploading,  setUploading]      = useState(false)
+  const [descripcion, setDescripcion]   = useState('')
+  const fileRef = useRef(null)
+  const qc = useQueryClient()
 
   const { data: docsRespaldo = [] } = useQuery({
     queryKey: ['docs-respaldo', solicitudId],
@@ -429,53 +435,107 @@ function DocsSidebar({ solicitudId, sol }) {
         {pdfLoading ? 'Generando…' : 'Descargar Solicitud PDF'}
       </Button>
 
-      {/* Lista de documentos con links */}
-      {docsRespaldo.length === 0 ? (
-        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-          Sin documentos adjuntos.
-        </Typography>
-      ) : (
-        <Box sx={{ maxHeight: 340, overflowY: 'auto' }}>
-          {docsRespaldo.map((doc, idx) => {
-            const info = catalogosDocs.find((d) => d.id === doc.documento)
-            return (
-              <Box
-                key={doc.id}
-                sx={{
-                  display: 'flex', alignItems: 'flex-start', gap: 1,
-                  py: 1, borderBottom: '1px solid #2A3D6B',
-                }}
-              >
-                <AttachFileIcon sx={{ fontSize: 16, color: ORO, mt: 0.3, flexShrink: 0 }} />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="body2" fontWeight={600} noWrap>
-                    {info?.descripcion || info?.nombre || `Documento #${doc.documento}`}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
-                    {info?.codigo || ''}
-                  </Typography>
-                  {doc.archivo ? (
-                    <Box>
-                      <Chip
-                        label="Ver / Descargar"
-                        size="small"
-                        component="a"
-                        href={`http://localhost:8000${doc.archivo}`}
-                        target="_blank"
-                        clickable
-                        icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
-                        sx={{ mt: 0.5, bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem' }}
-                      />
-                    </Box>
-                  ) : (
-                    <Typography variant="caption" color="text.disabled">Sin archivo</Typography>
-                  )}
+      {/* Lista de documentos adjuntos (excluye notificaciones firmadas) */}
+      {(() => {
+        const visibles = docsRespaldo.filter((d) => !NOTIF_KEYS.includes(d.observacion))
+        if (visibles.length === 0) {
+          return (
+            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: 2 }}>
+              Sin documentos adjuntos.
+            </Typography>
+          )
+        }
+        return (
+          <Box sx={{ maxHeight: 300, overflowY: 'auto', mb: 2 }}>
+            {visibles.map((doc) => {
+              const info = doc.documento ? catalogosDocs.find((d) => d.id === doc.documento) : null
+              const label = info?.descripcion || info?.nombre
+                || (doc.observacion && !NOTIF_KEYS.includes(doc.observacion) ? doc.observacion : null)
+                || `Documento #${doc.id}`
+              return (
+                <Box
+                  key={doc.id}
+                  sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 1, borderBottom: '1px solid #2A3D6B' }}
+                >
+                  <AttachFileIcon sx={{ fontSize: 16, color: ORO, mt: 0.3, flexShrink: 0 }} />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="body2" fontWeight={600} noWrap>{label}</Typography>
+                    {info?.codigo && (
+                      <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                        {info.codigo}
+                      </Typography>
+                    )}
+                    {doc.archivo ? (
+                      <Box>
+                        <Chip
+                          label="Ver / Descargar"
+                          size="small"
+                          component="a"
+                          href={`http://localhost:8000${doc.archivo}`}
+                          target="_blank"
+                          clickable
+                          icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
+                          sx={{ mt: 0.5, bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem' }}
+                        />
+                      </Box>
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">Sin archivo</Typography>
+                    )}
+                  </Box>
                 </Box>
-              </Box>
-            )
-          })}
-        </Box>
-      )}
+              )
+            })}
+          </Box>
+        )
+      })()}
+
+      {/* Subir documento adicional */}
+      <Box sx={{ borderTop: '1px solid #2A3D6B', pt: 1.5 }}>
+        <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', display: 'block', mb: 1 }}>
+          Subir documento adicional
+        </Typography>
+        <TextField
+          size="small" fullWidth
+          label="Descripción del documento"
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+          sx={{ mb: 1 }}
+        />
+        <input
+          type="file"
+          ref={fileRef}
+          style={{ display: 'none' }}
+          onChange={async (e) => {
+            const file = e.target.files[0]
+            e.target.value = ''
+            if (!file) return
+            setUploading(true)
+            try {
+              const fd = new FormData()
+              fd.append('archivo', file)
+              fd.append('solicitud', solicitudId)
+              if (descripcion.trim()) fd.append('observacion', descripcion.trim())
+              await createDocumentoRespaldo(fd)
+              qc.invalidateQueries(['docs-respaldo', solicitudId])
+              setDescripcion('')
+              toast.success('Documento adjuntado')
+            } catch {
+              toast.error('Error al subir el documento')
+            } finally {
+              setUploading(false)
+            }
+          }}
+        />
+        <Button
+          fullWidth size="small" variant="outlined"
+          startIcon={uploading ? <CircularProgress size={14} /> : <UploadFileIcon />}
+          disabled={uploading}
+          onClick={() => fileRef.current?.click()}
+          sx={{ borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}18` } }}
+        >
+          {uploading ? 'Subiendo…' : 'Seleccionar archivo'}
+        </Button>
+      </Box>
     </Box>
   )
 }
