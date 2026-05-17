@@ -15,14 +15,17 @@ import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AttachFileIcon from '@mui/icons-material/AttachFile'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import { useForm, Controller } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
+import { pdf } from '@react-pdf/renderer'
 import toast from 'react-hot-toast'
 import { createSolicitud, createFormulario, createDocumentoRespaldo, getAsegurados, getEmpleadores } from '../../api/solicitudes'
 import catalogosApi from '../../api/catalogos'
 import { useAuthStore } from '../../store/authStore'
 import { getMe } from '../../api/auth'
 import { ORO } from '../../theme'
+import SolicitudPDF from '../../components/SolicitudPDF'
 
 const STEPS = [
   'Datos del Asegurado',
@@ -815,9 +818,10 @@ function StepSolicitante({ control }) {
 }
 
 function StepResumen({ getValues, fpcRows, docSelections }) {
-  const values     = getValues()
-  const fpcValidos = fpcRows.filter((r) => r.periodo)
+  const values      = getValues()
+  const fpcValidos  = fpcRows.filter((r) => r.periodo)
   const docsChecked = Object.entries(docSelections).filter(([, s]) => s.checked)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   const { data: tiposPlanilla = [] } = useQuery({
     queryKey: ['tipo-planilla'],
@@ -829,9 +833,47 @@ function StepResumen({ getValues, fpcRows, docSelections }) {
     queryFn:  () => catalogosApi.documentos.getAll().then((r) => r.data.results || r.data),
     staleTime: 5 * 60_000,
   })
+  const { data: tiposCausal = [] } = useQuery({
+    queryKey: ['tipo-causal'],
+    queryFn:  () => catalogosApi.tipoCausal.getAll().then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+  })
+  const { data: regionales = [] } = useQuery({
+    queryKey: ['regionales-all'],
+    queryFn:  () => catalogosApi.regionales.getAll({ page_size: 200 }).then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+  })
 
   const getPlanilla  = (id) => tiposPlanilla.find((t) => t.id === Number(id))?.nombre || '—'
   const getDocInfo   = (id) => catalogosDocs.find((d) => d.id === Number(id))
+
+  const handleDescargarPDF = async () => {
+    setPdfLoading(true)
+    try {
+      const blob = await pdf(
+        <SolicitudPDF
+          values={values}
+          fpcRows={fpcRows}
+          docsChecked={docsChecked}
+          tiposPlanilla={tiposPlanilla}
+          catalogosDocs={catalogosDocs}
+          tiposCausal={tiposCausal}
+          regionales={regionales}
+          numero={null}
+        />
+      ).toBlob()
+      const url = URL.createObjectURL(blob)
+      const a   = document.createElement('a')
+      a.href    = url
+      a.download = `solicitud_rectificacion_borrador.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      toast.error('Error al generar PDF: ' + e.message)
+    } finally {
+      setPdfLoading(false)
+    }
+  }
 
   const headSx = { py: 0.8, px: 1, fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', color: ORO, borderBottom: `2px solid #2A3D6B`, whiteSpace: 'nowrap' }
   const cellSx = { py: 0.6, px: 1, fontSize: '0.82rem', borderBottom: '1px solid #2A3D6B' }
@@ -841,9 +883,20 @@ function StepResumen({ getValues, fpcRows, docSelections }) {
       <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2, color: ORO }}>
         Resumen de la Solicitud
       </Typography>
-      <Alert severity="info" sx={{ mb: 2 }}>
-        Revise los datos antes de enviar. La solicitud se creará en estado <strong>Borrador</strong>.
-      </Alert>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2, gap: 2 }}>
+        <Alert severity="info" sx={{ flex: 1, mb: 0 }}>
+          Revise los datos antes de enviar. La solicitud se creará en estado <strong>Borrador</strong>.
+        </Alert>
+        <Button
+          variant="outlined"
+          startIcon={pdfLoading ? <CircularProgress size={16} /> : <PictureAsPdfIcon />}
+          disabled={pdfLoading}
+          onClick={handleDescargarPDF}
+          sx={{ whiteSpace: 'nowrap', borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}18` } }}
+        >
+          {pdfLoading ? 'Generando…' : 'Descargar PDF'}
+        </Button>
+      </Box>
 
       {/* Tarjetas de resumen general */}
       <Grid container spacing={1.5} sx={{ mb: 2.5 }}>
