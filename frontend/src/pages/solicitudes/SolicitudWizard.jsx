@@ -20,7 +20,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import { pdf } from '@react-pdf/renderer'
 import toast from 'react-hot-toast'
-import { createSolicitud, createFormulario, createDocumentoRespaldo, getAsegurados, getEmpleadores } from '../../api/solicitudes'
+import { createSolicitud, createFormulario, createDocumentoRespaldo, getAsegurados, getEmpleadores, enviarNotificacion } from '../../api/solicitudes'
 import catalogosApi from '../../api/catalogos'
 import { useAuthStore } from '../../store/authStore'
 import { getMe } from '../../api/auth'
@@ -1147,6 +1147,14 @@ export default function SolicitudWizard() {
           if (sel.file) fd.append('archivo', sel.file)
           await createDocumentoRespaldo(fd)
         } catch { /* continúa con el siguiente */ }
+      }
+
+      // Enviar notificación por correo
+      try {
+        await enviarNotificacion(solicitudId)
+        toast.success('Notificación enviada por correo', { duration: 3000 })
+      } catch {
+        toast('No se pudo enviar la notificación por correo', { icon: '⚠️' })
       }
 
       const nFpc  = fpcRows.filter((r) => r.periodo).length

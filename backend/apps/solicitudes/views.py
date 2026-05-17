@@ -150,6 +150,18 @@ class SolicitudViewSet(viewsets.ModelViewSet):
         disponibles = transiciones_disponibles(request.user.rol, solicitud.estado)
         return Response({'transiciones': disponibles})
 
+    @action(detail=True, methods=['post'], url_path='enviar_notificacion')
+    def enviar_notificacion(self, request, pk=None):
+        solicitud = self.get_object()
+        from .email_utils import enviar_notificacion_solicitud
+        extras = request.data.get('destinatarios_extra', [])
+        if isinstance(extras, str):
+            extras = [e.strip() for e in extras.split(',') if e.strip()]
+        ok, mensaje = enviar_notificacion_solicitud(solicitud, destinatarios_extra=extras or None)
+        if ok:
+            return Response({'detail': mensaje})
+        return Response({'detail': mensaje}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=False, methods=['get'], url_path='exportar')
     def exportar_excel(self, request):
         import openpyxl

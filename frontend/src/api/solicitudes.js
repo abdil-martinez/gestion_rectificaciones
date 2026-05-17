@@ -9,6 +9,8 @@ export const getBitacora = (id) => api.get(`/solicitudes/solicitudes/${id}/bitac
 export const getTransiciones = (id) => api.get(`/solicitudes/solicitudes/${id}/transiciones/`)
 export const exportarExcel = (params) =>
   api.get('/solicitudes/solicitudes/exportar/', { params, responseType: 'blob' })
+export const enviarNotificacion = (id, destinatariosExtra = []) =>
+  api.post(`/solicitudes/solicitudes/${id}/enviar_notificacion/`, { destinatarios_extra: destinatariosExtra })
 
 export const getAsegurados = (params) => api.get('/solicitudes/asegurados/', { params })
 export const getAsegurado = (id) => api.get(`/solicitudes/asegurados/${id}/`)
