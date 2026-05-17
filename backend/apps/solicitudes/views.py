@@ -119,6 +119,9 @@ class SolicitudViewSet(viewsets.ModelViewSet):
             except CustomUser.DoesNotExist:
                 pass
 
+        if nuevo_estado == 'DEV' and solicitud.usuario_creador_id:
+            solicitud.analista_asignado = solicitud.usuario_creador
+
         if nuevo_estado in ('APRO', 'FIN'):
             solicitud.fecha_resolucion = timezone.now().date()
 
