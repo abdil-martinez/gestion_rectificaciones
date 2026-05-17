@@ -91,6 +91,7 @@ class SolicitudListSerializer(serializers.ModelSerializer):
     tipo_causal_nombre      = serializers.CharField(source='tipo_causal.nombre', read_only=True)
     tipo_solicitud_nombre   = serializers.CharField(source='tipo_solicitud.descripcion', read_only=True)
     regional_nombre         = serializers.CharField(source='regional.nombre', read_only=True)
+    tipo_regional_nombre    = serializers.CharField(source='regional.tipo_regional.nombre', read_only=True)
     analista_nombre         = serializers.SerializerMethodField()
     estado_label            = serializers.SerializerMethodField()
     vencida                 = serializers.SerializerMethodField()
@@ -100,7 +101,8 @@ class SolicitudListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'numero_solicitud', 'estado', 'estado_label', 'prioridad',
             'asegurado_nombre', 'asegurado_cedula', 'asegurado_cua',
-            'tipo_causal_nombre', 'tipo_solicitud_nombre', 'regional_nombre',
+            'tipo_causal_nombre', 'tipo_solicitud_nombre',
+            'regional_nombre', 'tipo_regional_nombre',
             'analista_nombre', 'fecha_recepcion', 'fecha_limite', 'monto_total',
             'vencida', 'created_at', 'updated_at',
         ]
