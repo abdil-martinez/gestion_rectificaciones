@@ -40,6 +40,7 @@ import { useAuthStore } from '../../store/authStore'
 import { ORO, NAVY2 } from '../../theme'
 import toast from 'react-hot-toast'
 import SolicitudPDF from '../../components/SolicitudPDF'
+import NotificacionesPanel from '../../components/NotificacionesPanel'
 
 const ACCION_ICONS = {
   APRO: { icon: <CheckCircleIcon />, color: '#4caf50' },
@@ -509,6 +510,12 @@ export default function SolicitudDetail() {
     queryFn:  () => getSolicitud(id).then((r) => r.data),
   })
 
+  const { data: formularios = [] } = useQuery({
+    queryKey: ['formularios', id],
+    queryFn:  () => getFormularios(id).then((r) => r.data.results || r.data),
+    enabled:  !!sol,
+  })
+
   const { data: bitacora = [] } = useQuery({
     queryKey: ['bitacora', id],
     queryFn:  () => getBitacora(id).then((r) => r.data),
@@ -774,6 +781,9 @@ export default function SolicitudDetail() {
                     </Typography>
                   </Box>
                   <DocsSidebar solicitudId={sol.id} sol={sol} />
+
+                  <Divider sx={{ my: 2.5, borderColor: '#2A3D6B' }} />
+                  <NotificacionesPanel sol={sol} formularios={formularios} />
                 </Grid>
 
               </Grid>
