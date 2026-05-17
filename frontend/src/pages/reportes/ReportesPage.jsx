@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import {
   Box, Card, CardContent, Typography, Grid, Button,
   Tab, Tabs, Stack, TextField, Table, TableHead,
-  TableRow, TableCell, TableBody, TableContainer, Chip,
+  TableRow, TableCell, TableBody, TableContainer, Chip, LinearProgress,
 } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
 import BarChartIcon from '@mui/icons-material/BarChart'
@@ -18,6 +18,75 @@ import toast from 'react-hot-toast'
 
 const PIE_COLORS = ['#CBab58', '#2196f3', '#4caf50', '#f44336', '#9c27b0', '#ff9800']
 
+function AnalystDetail({ row }) {
+  const enProceso = Math.max(0, row.total - row.finalizadas - row.aprobadas - row.rechazadas)
+  const pctFin    = row.total > 0 ? Math.round((row.finalizadas / row.total) * 100) : 0
+
+  const chartData = [
+    { name: 'Finalizadas', value: row.finalizadas, color: '#4caf50' },
+    { name: 'Aprobadas',   value: row.aprobadas,   color: '#2196f3' },
+    { name: 'En proceso',  value: enProceso,        color: ORO      },
+    { name: 'Rechazadas',  value: row.rechazadas,   color: '#f44336' },
+  ].filter((d) => d.value > 0)
+
+  return (
+    <Box>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        {[
+          { label: 'Total asignadas', value: row.total,       color: ORO      },
+          { label: 'En proceso',      value: enProceso,       color: '#CBab58' },
+          { label: 'Finalizadas',     value: row.finalizadas, color: '#4caf50' },
+          { label: 'Aprobadas',       value: row.aprobadas,   color: '#2196f3' },
+          { label: 'Rechazadas',      value: row.rechazadas,  color: '#f44336' },
+        ].map(({ label, value, color }) => (
+          <Grid item xs={6} sm={4} md key={label}>
+            <Box sx={{ textAlign: 'center', p: 2, border: '1px solid #2A3D6B', borderRadius: 2, height: '100%' }}>
+              <Typography variant="h4" fontWeight={800} sx={{ color }}>{value}</Typography>
+              <Typography variant="caption" color="text.secondary"
+                sx={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '0.68rem', display: 'block', mt: 0.5 }}>
+                {label}
+              </Typography>
+            </Box>
+          </Grid>
+        ))}
+      </Grid>
+
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+          <Typography variant="caption" color="text.secondary">Tasa de finalización</Typography>
+          <Typography variant="caption" fontWeight={700} sx={{ color: '#4caf50' }}>{pctFin}%</Typography>
+        </Box>
+        <LinearProgress
+          variant="determinate"
+          value={pctFin}
+          sx={{
+            height: 8, borderRadius: 4, bgcolor: '#2A3D6B',
+            '& .MuiLinearProgress-bar': { bgcolor: '#4caf50', borderRadius: 4 },
+          }}
+        />
+      </Box>
+
+      {chartData.length > 0 && (
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 40, left: 90, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2A3D6B" horizontal={false} />
+            <XAxis type="number" tick={{ fill: '#B0B8D0', fontSize: 11 }} allowDecimals={false} />
+            <YAxis type="category" dataKey="name" tick={{ fill: '#B0B8D0', fontSize: 12 }} width={90} />
+            <Tooltip
+              contentStyle={{ backgroundColor: NAVY2, border: `1px solid ${ORO}`, borderRadius: 8 }}
+              labelStyle={{ color: ORO, fontWeight: 700 }}
+              itemStyle={{ color: '#fff' }}
+            />
+            <Bar dataKey="value" name="Solicitudes" radius={[0, 4, 4, 0]}>
+              {chartData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </Box>
+  )
+}
+
 function SectionHeader({ title }) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.5 }}>
@@ -32,6 +101,7 @@ export default function ReportesPage() {
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
   const [downloading, setDownloading] = useState(false)
+  const [analystTab, setAnalystTab]   = useState(0)
 
   const params = {
     ...(fechaDesde && { fecha_desde: fechaDesde }),
@@ -151,44 +221,82 @@ export default function ReportesPage() {
                 {!productividad.length ? (
                   <Typography color="text.secondary" variant="body2">Sin datos para el período seleccionado.</Typography>
                 ) : (
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} lg={6}>
-                      <ResponsiveContainer width="100%" height={260}>
-                        <BarChart data={productividad} margin={{ top: 5, right: 10, left: -20, bottom: 30 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#2A3D6B" />
-                          <XAxis dataKey="analista" tick={{ fill: '#B0B8D0', fontSize: 11 }} angle={-20} textAnchor="end" interval={0} />
-                          <YAxis tick={{ fill: '#B0B8D0', fontSize: 11 }} allowDecimals={false} />
-                          <Tooltip contentStyle={{ backgroundColor: NAVY2, border: `1px solid ${ORO}`, borderRadius: 8 }} labelStyle={{ color: ORO, fontWeight: 700 }} itemStyle={{ color: '#fff' }} />
-                          <Bar dataKey="total" name="Total" radius={[4, 4, 0, 0]} fill={ORO} />
-                          <Bar dataKey="finalizadas" name="Finalizadas" radius={[4, 4, 0, 0]} fill="#4caf50" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </Grid>
-                    <Grid item xs={12} lg={6}>
-                      <TableContainer>
-                        <Table size="small">
-                          <TableHead>
-                            <TableRow>
-                              {['Analista', 'Total', 'Finalizadas', 'Aprobadas', 'Rechazadas'].map((h) => (
-                                <TableCell key={h} sx={{ color: ORO, fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase' }}>{h}</TableCell>
-                              ))}
-                            </TableRow>
-                          </TableHead>
-                          <TableBody>
-                            {productividad.map((row) => (
-                              <TableRow key={row.analista_id} sx={{ '&:last-child td': { border: 0 } }}>
-                                <TableCell sx={{ fontWeight: 600 }}>{row.analista}</TableCell>
-                                <TableCell><Chip label={row.total} size="small" sx={{ bgcolor: `${ORO}22`, color: ORO, fontWeight: 700 }} /></TableCell>
-                                <TableCell><Chip label={row.finalizadas} size="small" sx={{ bgcolor: '#1b5e2044', color: '#4caf50', fontWeight: 700 }} /></TableCell>
-                                <TableCell>{row.aprobadas}</TableCell>
-                                <TableCell>{row.rechazadas}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </TableContainer>
-                    </Grid>
-                  </Grid>
+                  <>
+                    {/* Sub-pestañas por analista */}
+                    <Box sx={{ borderBottom: 1, borderColor: '#2A3D6B', mb: 2.5 }}>
+                      <Tabs
+                        value={Math.min(analystTab, productividad.length)}
+                        onChange={(_, v) => setAnalystTab(v)}
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        sx={{
+                          '& .MuiTab-root': { fontWeight: 600, fontSize: '0.78rem', minWidth: 100, textTransform: 'none' },
+                          '& .Mui-selected': { color: `${ORO} !important` },
+                          '& .MuiTabs-indicator': { backgroundColor: ORO },
+                        }}
+                      >
+                        <Tab label="Resumen General" />
+                        {productividad.map((row) => (
+                          <Tab key={row.analista_id} label={row.analista} />
+                        ))}
+                      </Tabs>
+                    </Box>
+
+                    {/* Resumen general */}
+                    {analystTab === 0 && (
+                      <Grid container spacing={3}>
+                        <Grid item xs={12} lg={6}>
+                          <ResponsiveContainer width="100%" height={260}>
+                            <BarChart data={productividad} margin={{ top: 5, right: 10, left: -20, bottom: 30 }}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#2A3D6B" />
+                              <XAxis dataKey="analista" tick={{ fill: '#B0B8D0', fontSize: 11 }} angle={-20} textAnchor="end" interval={0} />
+                              <YAxis tick={{ fill: '#B0B8D0', fontSize: 11 }} allowDecimals={false} />
+                              <Tooltip contentStyle={{ backgroundColor: NAVY2, border: `1px solid ${ORO}`, borderRadius: 8 }} labelStyle={{ color: ORO, fontWeight: 700 }} itemStyle={{ color: '#fff' }} />
+                              <Bar dataKey="total" name="Total" radius={[4, 4, 0, 0]} fill={ORO} />
+                              <Bar dataKey="finalizadas" name="Finalizadas" radius={[4, 4, 0, 0]} fill="#4caf50" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </Grid>
+                        <Grid item xs={12} lg={6}>
+                          <TableContainer>
+                            <Table size="small">
+                              <TableHead>
+                                <TableRow>
+                                  {['Analista', 'Total', 'Finalizadas', 'Aprobadas', 'Rechazadas'].map((h) => (
+                                    <TableCell key={h} sx={{ color: ORO, fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase' }}>{h}</TableCell>
+                                  ))}
+                                </TableRow>
+                              </TableHead>
+                              <TableBody>
+                                {productividad.map((row, i) => (
+                                  <TableRow
+                                    key={row.analista_id}
+                                    hover
+                                    sx={{ cursor: 'pointer', '&:last-child td': { border: 0 } }}
+                                    onClick={() => setAnalystTab(i + 1)}
+                                  >
+                                    <TableCell sx={{ fontWeight: 600 }}>{row.analista}</TableCell>
+                                    <TableCell><Chip label={row.total} size="small" sx={{ bgcolor: `${ORO}22`, color: ORO, fontWeight: 700 }} /></TableCell>
+                                    <TableCell><Chip label={row.finalizadas} size="small" sx={{ bgcolor: '#1b5e2044', color: '#4caf50', fontWeight: 700 }} /></TableCell>
+                                    <TableCell>{row.aprobadas}</TableCell>
+                                    <TableCell>{row.rechazadas}</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </TableContainer>
+                          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                            Haga clic en una fila para ver el detalle del analista.
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    )}
+
+                    {/* Vista individual por analista */}
+                    {productividad.map((row, i) =>
+                      analystTab === i + 1 && <AnalystDetail key={row.analista_id} row={row} />
+                    )}
+                  </>
                 )}
               </>
             )}
