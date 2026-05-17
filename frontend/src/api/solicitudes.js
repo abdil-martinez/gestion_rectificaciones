@@ -23,3 +23,11 @@ export const getFormularios = (solicitudId) =>
 export const createFormulario = (data) => api.post('/solicitudes/formularios/', data)
 export const updateFormulario = (id, data) => api.patch(`/solicitudes/formularios/${id}/`, data)
 export const deleteFormulario = (id) => api.delete(`/solicitudes/formularios/${id}/`)
+
+export const getDocumentosRespaldo = (solicitudId) =>
+  api.get('/solicitudes/documentos-respaldo/', { params: { solicitud: solicitudId } })
+export const createDocumentoRespaldo = (formData) =>
+  api.post('/solicitudes/documentos-respaldo/', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+export const updateDocumentoRespaldo = (id, formData) =>
+  api.patch(`/solicitudes/documentos-respaldo/${id}/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+export const deleteDocumentoRespaldo = (id) => api.delete(`/solicitudes/documentos-respaldo/${id}/`)

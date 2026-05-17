@@ -8,6 +8,7 @@ import SolicitudList from './pages/solicitudes/SolicitudList'
 import SolicitudDetail from './pages/solicitudes/SolicitudDetail'
 import SolicitudWizard from './pages/solicitudes/SolicitudWizard'
 import WorkflowView from './pages/workflow/WorkflowView'
+import ReportesPage from './pages/reportes/ReportesPage'
 import ConfigPage from './pages/config/ConfigPage'
 import UsersPage from './pages/usuarios/UsersPage'
 
@@ -42,6 +43,14 @@ export default function App() {
         <Route path="solicitudes/nueva" element={<SolicitudWizard />} />
         <Route path="solicitudes/:id" element={<SolicitudDetail />} />
         <Route path="workflow" element={<WorkflowView />} />
+        <Route
+          path="reportes"
+          element={
+            <AdminRoute>
+              <ReportesPage />
+            </AdminRoute>
+          }
+        />
         <Route
           path="config"
           element={

@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
-from middleware import get_current_user
 from .models import (
     TipoSolicitud, Administradora, TipoCausal, Unidad, TipoRegional,
     FormularioContribucion, TipoIdentificacion, AreaSolicitante,
@@ -34,12 +33,10 @@ class BaseCatalogoViewSet(viewsets.ModelViewSet):
     filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     def perform_create(self, serializer):
-        user = get_current_user()
-        serializer.save(usuario_creador=user)
+        serializer.save(usuario_creador=self.request.user)
 
     def perform_update(self, serializer):
-        user = get_current_user()
-        serializer.save(usuario_modificador=user)
+        serializer.save(usuario_modificador=self.request.user)
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()

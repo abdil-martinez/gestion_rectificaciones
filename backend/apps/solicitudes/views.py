@@ -1,5 +1,5 @@
 import io
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, status, filters, parsers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -8,11 +8,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.http import HttpResponse
 from django.utils import timezone
 
-from .models import Solicitud, BitacoraSolicitud, Formulario, Asegurado, Empleador, Solicitante
+from .models import Solicitud, BitacoraSolicitud, Formulario, DocumentoRespaldo, Asegurado, Empleador, Solicitante
 from .serializers import (
     SolicitudListSerializer, SolicitudDetailSerializer, SolicitudCreateSerializer,
-    BitacoraSerializer, FormularioSerializer, AseguradoSerializer, EmpleadorSerializer,
-    SolicitanteSerializer,
+    BitacoraSerializer, FormularioSerializer, DocumentoRespaldoSerializer,
+    AseguradoSerializer, EmpleadorSerializer, SolicitanteSerializer,
 )
 from .workflow import puede_transitar, registrar_bitacora, transiciones_disponibles
 
@@ -27,7 +27,7 @@ def get_client_ip(request):
 class SolicitudViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends    = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields   = ['estado', 'regional', 'analista_asignado', 'prioridad', 'tipo_causal']
+    filterset_fields   = ['estado', 'regional', 'regional__tipo_regional', 'analista_asignado', 'prioridad', 'tipo_causal']
     search_fields      = ['numero_solicitud', 'asegurado__nombre', 'asegurado__cedula',
                           'asegurado__ap_paterno', 'asegurado__ap_materno']
     ordering_fields    = ['created_at', 'fecha_recepcion', 'fecha_limite', 'numero_solicitud', 'estado']
@@ -59,9 +59,24 @@ class SolicitudViewSet(viewsets.ModelViewSet):
             return SolicitudListSerializer
         return SolicitudDetailSerializer
 
-    def perform_create(self, serializer):
-        user = self.request.user
-        solicitud = serializer.save(usuario_creador=user)
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+
+        # Auto-asignar solicitante vinculado al usuario actual
+        extra = {'usuario_creador': user}
+        if not request.data.get('solicitante'):
+            solicitante, _ = Solicitante.objects.get_or_create(
+                usuario=user,
+                defaults={
+                    'nombre':     user.first_name or user.username,
+                    'ap_paterno': user.last_name or '',
+                }
+            )
+            extra['solicitante'] = solicitante
+
+        solicitud = serializer.save(**extra)
         registrar_bitacora(
             solicitud=solicitud,
             usuario=user,
@@ -69,8 +84,15 @@ class SolicitudViewSet(viewsets.ModelViewSet):
             estado_nuevo='BOR',
             accion='CREACION',
             comentario='Solicitud creada.',
-            ip=get_client_ip(self.request),
+            ip=get_client_ip(request),
         )
+        return Response(
+            SolicitudDetailSerializer(solicitud, context={'request': request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def perform_create(self, serializer):
+        pass
 
     @action(detail=True, methods=['post'], url_path='cambiar_estado')
     def cambiar_estado(self, request, pk=None):
@@ -229,6 +251,7 @@ class AseguradoViewSet(viewsets.ModelViewSet):
     serializer_class   = AseguradoSerializer
     permission_classes = [IsAuthenticated]
     filter_backends    = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields   = ['cedula', 'cua', 'tipo_identificacion']
     search_fields      = ['nombre', 'ap_paterno', 'ap_materno', 'cedula', 'cua']
 
     def perform_create(self, serializer):
@@ -239,11 +262,27 @@ class EmpleadorViewSet(viewsets.ModelViewSet):
     queryset           = Empleador.objects.all()
     serializer_class   = EmpleadorSerializer
     permission_classes = [IsAuthenticated]
-    filter_backends    = [filters.SearchFilter]
+    filter_backends    = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields   = ['numero_documento_identidad', 'nit', 'tipo_identificacion']
     search_fields      = ['nombre_razon_social', 'nit', 'numero_documento_identidad']
 
     def perform_create(self, serializer):
         serializer.save(usuario_creador=self.request.user)
+
+
+class DocumentoRespaldoViewSet(viewsets.ModelViewSet):
+    queryset           = DocumentoRespaldo.objects.select_related('documento', 'estado_documentacion').all()
+    serializer_class   = DocumentoRespaldoSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends    = [DjangoFilterBackend]
+    filterset_fields   = ['solicitud', 'documento', 'estado_documentacion']
+    parser_classes     = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
+
+    def perform_create(self, serializer):
+        serializer.save(usuario_creador=self.request.user)
+
+    def perform_update(self, serializer):
+        serializer.save(usuario_modificador=self.request.user)
 
 
 class SolicitanteViewSet(viewsets.ModelViewSet):

@@ -6,6 +6,7 @@ from .models import CustomUser
 class UserSerializer(serializers.ModelSerializer):
     regional_nombre = serializers.CharField(source='regional.nombre', read_only=True)
     unidad_nombre   = serializers.CharField(source='unidad.nombre', read_only=True)
+    agencia_nombre  = serializers.CharField(source='agencia.nombre', read_only=True)
     nombre_completo = serializers.SerializerMethodField()
 
     class Meta:
@@ -14,6 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'rol', 'regional', 'regional_id', 'regional_nombre',
             'unidad', 'unidad_id', 'unidad_nombre',
+            'agencia', 'agencia_id', 'agencia_nombre',
             'telefono', 'avatar', 'is_active', 'date_joined',
             'nombre_completo',
         ]
@@ -31,7 +33,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         model  = CustomUser
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'rol', 'regional', 'unidad', 'telefono', 'password', 'password2',
+            'rol', 'regional', 'unidad', 'agencia', 'telefono', 'password', 'password2',
         ]
 
     def validate_email(self, value):
@@ -58,7 +60,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         model  = CustomUser
         fields = [
             'email', 'first_name', 'last_name',
-            'rol', 'regional', 'unidad', 'telefono', 'avatar',
+            'rol', 'regional', 'unidad', 'agencia', 'telefono', 'avatar',
         ]
 
 

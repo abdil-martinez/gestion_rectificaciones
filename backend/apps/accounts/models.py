@@ -23,6 +23,12 @@ class CustomUser(AbstractUser):
         null=True, blank=True,
         related_name='usuarios'
     )
+    agencia = models.ForeignKey(
+        'catalogos.Agencia',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='usuarios'
+    )
     telefono = models.CharField(max_length=20, blank=True, null=True)
     avatar   = models.ImageField(upload_to='avatars/', blank=True, null=True)
 

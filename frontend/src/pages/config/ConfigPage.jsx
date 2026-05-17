@@ -4,7 +4,7 @@ import {
   ListItemText, Divider, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, IconButton, Button, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Tooltip, Alert,
-  CircularProgress, Chip,
+  CircularProgress, Chip, MenuItem,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
@@ -20,8 +20,8 @@ const CATALOGOS = [
   { key: 'tipoSolicitud',          label: 'Tipos de Solicitud',          fields: [{ name: 'codigo', label: 'Código', required: true }, { name: 'descripcion', label: 'Descripción', required: true }] },
   { key: 'tipoCausal',             label: 'Tipos de Causal',             fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'tipo', label: 'Tipo', type: 'select', options: [{ value: 'CONTRIBUCION', label: 'Contribución' }, { value: 'PRESTACION', label: 'Prestación' }, { value: 'ADMINISTRATIVO', label: 'Administrativo' }, { value: 'OTRO', label: 'Otro' }] }] },
   { key: 'unidades',               label: 'Unidades',                    fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'descripcion', label: 'Descripción' }] },
-  { key: 'regionales',             label: 'Regionales',                  fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'tipo', label: 'Tipo' }] },
-  { key: 'agencias',               label: 'Agencias',                    fields: [{ name: 'nombre', label: 'Nombre', required: true }] },
+  { key: 'regionales',             label: 'Regionales',                  fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'tipo_regional', label: 'Tipo de Regional', type: 'fk_select', catalog: 'tipoRegional', optionLabel: 'nombre', displayField: 'tipo_regional_nombre', required: true }] },
+  { key: 'agencias',               label: 'Agencias',                    fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'regional', label: 'Regional', type: 'fk_select', catalog: 'regionales', optionLabel: 'nombre', displayField: 'regional_nombre', required: true }] },
   { key: 'administradoras',        label: 'Administradoras',             fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'codigo', label: 'Código', required: true }, { name: 'nit', label: 'NIT' }] },
   { key: 'tipoIdentificacion',     label: 'Tipos de Identificación',     fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'codigo', label: 'Código', required: true }] },
   { key: 'tipoPlanilla',           label: 'Tipos de Planilla',           fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'codigo', label: 'Código', required: true }] },
@@ -32,6 +32,31 @@ const CATALOGOS = [
   { key: 'estadoPlazo',            label: 'Estados de Plazo',            fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'limite_dias', label: 'Días Límite', type: 'number', required: true }] },
   { key: 'tipoRegional',           label: 'Tipos de Regional',           fields: [{ name: 'nombre', label: 'Nombre', required: true }] },
 ]
+
+function FkSelectField({ field, fieldDef, error, helperText }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['config', fieldDef.catalog],
+    queryFn: () => catalogosApi[fieldDef.catalog].getAll({ page_size: 200 }).then((r) => r.data.results || r.data),
+    enabled: !!catalogosApi[fieldDef.catalog],
+  })
+  return (
+    <TextField
+      {...field}
+      select
+      label={fieldDef.label + (fieldDef.required ? ' *' : '')}
+      fullWidth
+      error={!!error}
+      helperText={helperText}
+      disabled={isLoading}
+      value={field.value ?? ''}
+    >
+      <MenuItem value=""><em>— Seleccione —</em></MenuItem>
+      {(data || []).map((opt) => (
+        <MenuItem key={opt.id} value={opt.id}>{opt[fieldDef.optionLabel || 'nombre']}</MenuItem>
+      ))}
+    </TextField>
+  )
+}
 
 function RecordDialog({ open, onClose, catalogo, record, onSave }) {
   const isEdit = !!record
@@ -68,17 +93,24 @@ function RecordDialog({ open, onClose, catalogo, record, onSave }) {
               control={control}
               rules={f.required ? { required: `${f.label} es requerido` } : {}}
               render={({ field }) =>
-                f.type === 'select' ? (
+                f.type === 'fk_select' ? (
+                  <FkSelectField
+                    field={field}
+                    fieldDef={f}
+                    error={errors[f.name]}
+                    helperText={errors[f.name]?.message}
+                  />
+                ) : f.type === 'select' ? (
                   <TextField
                     {...field}
                     select
-                    label={f.label}
+                    label={f.label + (f.required ? ' *' : '')}
                     fullWidth
                     error={!!errors[f.name]}
                     helperText={errors[f.name]?.message}
                   >
                     {f.options?.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                     ))}
                   </TextField>
                 ) : (
@@ -236,7 +268,7 @@ export default function ConfigPage() {
                           <TableCell sx={{ color: 'text.secondary', fontFamily: 'monospace' }}>{row.id}</TableCell>
                           {getDisplayFields().map((f) => (
                             <TableCell key={f.name}>
-                              <Typography variant="body2">{row[f.name] || '—'}</Typography>
+                              <Typography variant="body2">{row[f.displayField || f.name] || '—'}</Typography>
                             </TableCell>
                           ))}
                           <TableCell>

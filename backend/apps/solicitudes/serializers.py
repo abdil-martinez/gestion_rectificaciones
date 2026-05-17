@@ -14,6 +14,15 @@ class AseguradoSerializer(serializers.ModelSerializer):
         return obj.nombre_completo
 
 
+class AseguradoNestedSerializer(AseguradoSerializer):
+    """Igual a AseguradoSerializer pero sin validador de unicidad en cedula.
+    Se usa al crear solicitudes: si ya existe el asegurado se reutiliza."""
+    cedula = serializers.CharField(max_length=30)
+
+    class Meta(AseguradoSerializer.Meta):
+        pass
+
+
 class EmpleadorSerializer(serializers.ModelSerializer):
     class Meta:
         model  = Empleador
@@ -78,6 +87,7 @@ class BitacoraSerializer(serializers.ModelSerializer):
 class SolicitudListSerializer(serializers.ModelSerializer):
     asegurado_nombre        = serializers.CharField(source='asegurado.nombre_completo', read_only=True)
     asegurado_cedula        = serializers.CharField(source='asegurado.cedula', read_only=True)
+    asegurado_cua           = serializers.CharField(source='asegurado.cua', read_only=True)
     tipo_causal_nombre      = serializers.CharField(source='tipo_causal.nombre', read_only=True)
     tipo_solicitud_nombre   = serializers.CharField(source='tipo_solicitud.descripcion', read_only=True)
     regional_nombre         = serializers.CharField(source='regional.nombre', read_only=True)
@@ -89,10 +99,10 @@ class SolicitudListSerializer(serializers.ModelSerializer):
         model  = Solicitud
         fields = [
             'id', 'numero_solicitud', 'estado', 'estado_label', 'prioridad',
-            'asegurado_nombre', 'asegurado_cedula', 'tipo_causal_nombre',
-            'tipo_solicitud_nombre', 'regional_nombre', 'analista_nombre',
-            'fecha_recepcion', 'fecha_limite', 'monto_total', 'vencida',
-            'created_at', 'updated_at',
+            'asegurado_nombre', 'asegurado_cedula', 'asegurado_cua',
+            'tipo_causal_nombre', 'tipo_solicitud_nombre', 'regional_nombre',
+            'analista_nombre', 'fecha_recepcion', 'fecha_limite', 'monto_total',
+            'vencida', 'created_at', 'updated_at',
         ]
 
     def get_analista_nombre(self, obj):
@@ -139,7 +149,7 @@ class SolicitudDetailSerializer(serializers.ModelSerializer):
 
 
 class SolicitudCreateSerializer(serializers.ModelSerializer):
-    asegurado_data  = AseguradoSerializer(write_only=True, required=False)
+    asegurado_data  = AseguradoNestedSerializer(write_only=True, required=False)
     empleador_data  = EmpleadorSerializer(write_only=True, required=False)
 
     class Meta:

@@ -148,7 +148,7 @@ class Solicitud(AuditoriaModel):
         related_name='solicitudes_asignadas',
     )
     area_solicitante    = models.ForeignKey(
-        AreaSolicitante, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes'
+        Unidad, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes_unidad'
     )
     formulario_contribucion = models.ForeignKey(
         FormularioContribucion, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes'
@@ -178,7 +178,7 @@ class Solicitud(AuditoriaModel):
             count = Solicitud.all_objects.filter(
                 created_at__year=year
             ).count() + 1
-            self.numero_solicitud = f"{year}-{count:05d}"
+            self.numero_solicitud = f"RE{year}-{count:06d}"
         super().save(*args, **kwargs)
 
     @property
@@ -203,11 +203,12 @@ class Formulario(AuditoriaModel):
     solicitud   = models.ForeignKey(
         Solicitud, on_delete=models.CASCADE, related_name='formularios'
     )
-    periodo     = models.CharField(max_length=10)
-    fecha_pago  = models.DateField(null=True, blank=True)
-    numero      = models.CharField(max_length=30, blank=True, null=True)
-    codigo      = models.CharField(max_length=30, blank=True, null=True)
-    monto_pago  = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    periodo      = models.CharField(max_length=10)
+    fecha_pago   = models.DateField(null=True, blank=True)
+    numero       = models.CharField(max_length=30, blank=True, null=True)
+    codigo       = models.CharField(max_length=30, blank=True, null=True)
+    total_ganado = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    monto_pago   = models.DecimalField(max_digits=18, decimal_places=2, default=0)
 
     class Meta:
         verbose_name        = 'Formulario'

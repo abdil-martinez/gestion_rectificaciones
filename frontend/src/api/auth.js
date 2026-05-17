@@ -1,11 +1,10 @@
 import api from './axios'
-import axios from 'axios'
 
 export const login = (username, password) =>
-  axios.post('http://localhost:8000/api/auth/token/', { username, password })
+  api.post('/auth/token/', { username, password })
 
 export const refreshToken = (refresh) =>
-  axios.post('http://localhost:8000/api/auth/token/refresh/', { refresh })
+  api.post('/auth/token/refresh/', { refresh })
 
 export const getMe = () => api.get('/accounts/me/')
 export const updateMe = (data) => api.patch('/accounts/me/', data)

@@ -20,84 +20,84 @@ class TipoSolicitudSerializer(AuditoriaReadMixin):
     class Meta:
         model  = TipoSolicitud
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class AdministradoraSerializer(AuditoriaReadMixin):
     class Meta:
         model  = Administradora
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class TipoCausalSerializer(AuditoriaReadMixin):
     class Meta:
         model  = TipoCausal
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class UnidadSerializer(AuditoriaReadMixin):
     class Meta:
         model  = Unidad
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class TipoRegionalSerializer(AuditoriaReadMixin):
     class Meta:
         model  = TipoRegional
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class FormularioContribucionSerializer(AuditoriaReadMixin):
     class Meta:
         model  = FormularioContribucion
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class TipoIdentificacionSerializer(AuditoriaReadMixin):
     class Meta:
         model  = TipoIdentificacion
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class AreaSolicitanteSerializer(AuditoriaReadMixin):
     class Meta:
         model  = AreaSolicitante
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class EstadoPlazoSerializer(AuditoriaReadMixin):
     class Meta:
         model  = EstadoPlazo
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class TipoPlanillaSerializer(AuditoriaReadMixin):
     class Meta:
         model  = TipoPlanilla
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class EstadoDocumentacionSerializer(AuditoriaReadMixin):
     class Meta:
         model  = EstadoDocumentacion
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class DocumentoSerializer(AuditoriaReadMixin):
     class Meta:
         model  = Documento
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class RegionalSerializer(AuditoriaReadMixin):
@@ -106,7 +106,7 @@ class RegionalSerializer(AuditoriaReadMixin):
     class Meta:
         model  = Regional
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 
 
 class AgenciaSerializer(AuditoriaReadMixin):
@@ -115,4 +115,4 @@ class AgenciaSerializer(AuditoriaReadMixin):
     class Meta:
         model  = Agencia
         fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador_nombre']
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']

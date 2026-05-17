@@ -10,7 +10,8 @@ import VisibilityIcon from '@mui/icons-material/Visibility'
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff'
 import { useForm, Controller } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import { login, getMe } from '../../api/auth'
+import axios from 'axios'
+import { login } from '../../api/auth'
 import { useAuthStore } from '../../store/authStore'
 import { ORO, NAVY, NAVY2 } from '../../theme'
 
@@ -29,18 +30,12 @@ export default function Login() {
     setLoading(true)
     setError('')
     try {
-      const res     = await login(data.username, data.password)
+      const res = await login(data.username, data.password)
       const { access, refresh } = res.data
 
-      // Fetch user profile after login
-      const meRes   = await getMe()
-        .catch(async () => {
-          // Use the new token for me request
-          const { default: axios } = await import('axios')
-          return axios.get('http://localhost:8000/api/accounts/me/', {
-            headers: { Authorization: `Bearer ${access}` },
-          })
-        })
+      const meRes = await axios.get('/api/accounts/me/', {
+        headers: { Authorization: `Bearer ${access}` },
+      })
 
       setAuth(meRes.data, access, refresh)
       toast.success(`Bienvenido, ${meRes.data.first_name || meRes.data.username}`)

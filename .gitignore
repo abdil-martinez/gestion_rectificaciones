@@ -55,3 +55,6 @@ Thumbs.db
 # Misc
 *.sqlite3
 *.db
+
+# Test screenshots
+screenshots/

@@ -2,12 +2,17 @@ import React from 'react'
 import {
   AppBar, Toolbar, Typography, IconButton, Box,
   Tooltip, Avatar, Menu, MenuItem, Divider,
+  ToggleButtonGroup, ToggleButton,
 } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import LogoutIcon from '@mui/icons-material/Logout'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
+import WbSunnyIcon from '@mui/icons-material/WbSunny'
+import DarkModeIcon from '@mui/icons-material/DarkMode'
+import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
+import { useThemeStore } from '../../store/themeStore'
 import { ORO, NAVY } from '../../theme'
 
 const PAGE_TITLES = {
@@ -23,6 +28,7 @@ export default function Topbar({ onMenuToggle, drawerWidth }) {
   const navigate    = useNavigate()
   const location    = useLocation()
   const { user, clearAuth } = useAuthStore()
+  const { mode, setMode }   = useThemeStore()
   const [anchorEl, setAnchorEl] = React.useState(null)
 
   const title = Object.entries(PAGE_TITLES)
@@ -57,7 +63,47 @@ export default function Topbar({ onMenuToggle, drawerWidth }) {
           {title}
         </Typography>
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          {/* Toggle dark / light / system */}
+          <ToggleButtonGroup
+            value={mode}
+            exclusive
+            onChange={(_, val) => val && setMode(val)}
+            size="small"
+            sx={{
+              '& .MuiToggleButton-root': {
+                border: '1px solid',
+                borderColor: `${ORO}44`,
+                color: 'text.secondary',
+                px: 0.8,
+                py: 0.4,
+                '&.Mui-selected': {
+                  bgcolor: `${ORO}22`,
+                  color: ORO,
+                  borderColor: `${ORO}88`,
+                  '&:hover': { bgcolor: `${ORO}33` },
+                },
+                '&:hover': { bgcolor: `${ORO}11` },
+              },
+            }}
+          >
+            <ToggleButton value="light">
+              <Tooltip title="Modo claro">
+                <WbSunnyIcon sx={{ fontSize: 17 }} />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="dark">
+              <Tooltip title="Modo oscuro">
+                <DarkModeIcon sx={{ fontSize: 17 }} />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="system">
+              <Tooltip title="Usar preferencia del sistema">
+                <SettingsBrightnessIcon sx={{ fontSize: 17 }} />
+              </Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
+
           <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
             {user?.nombre_completo || user?.username}
           </Typography>
