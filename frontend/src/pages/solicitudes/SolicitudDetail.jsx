@@ -22,7 +22,10 @@ import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import SaveIcon from '@mui/icons-material/Save'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
+import FolderOpenIcon from '@mui/icons-material/FolderOpen'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { pdf } from '@react-pdf/renderer'
 import dayjs from 'dayjs'
 import {
   getSolicitud, getBitacora, cambiarEstado, getTransiciones,
@@ -36,6 +39,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner'
 import { useAuthStore } from '../../store/authStore'
 import { ORO, NAVY2 } from '../../theme'
 import toast from 'react-hot-toast'
+import SolicitudPDF from '../../components/SolicitudPDF'
 
 const ACCION_ICONS = {
   APRO: { icon: <CheckCircleIcon />, color: '#4caf50' },
@@ -329,6 +333,152 @@ function DocumentosRespaldo({ solicitudId }) {
   )
 }
 
+function DocsSidebar({ solicitudId, sol }) {
+  const [pdfLoading, setPdfLoading] = useState(false)
+
+  const { data: docsRespaldo = [] } = useQuery({
+    queryKey: ['docs-respaldo', solicitudId],
+    queryFn: () => getDocumentosRespaldo(solicitudId).then((r) => r.data.results || r.data),
+  })
+  const { data: formularios = [] } = useQuery({
+    queryKey: ['formularios', solicitudId],
+    queryFn: () => getFormularios(solicitudId).then((r) => r.data.results || r.data),
+  })
+  const { data: tiposPlanilla = [] } = useQuery({
+    queryKey: ['tipo-planilla'],
+    queryFn: () => catalogosApi.tipoPlanilla.getAll().then((r) => r.data.results || r.data),
+    staleTime: 5 * 60_000,
+  })
+  const { data: tiposCausal = [] } = useQuery({
+    queryKey: ['tipo-causal'],
+    queryFn: () => catalogosApi.tipoCausal.getAll().then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+  })
+  const { data: regionales = [] } = useQuery({
+    queryKey: ['regionales-all'],
+    queryFn: () => catalogosApi.regionales.getAll({ page_size: 200 }).then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+  })
+  const { data: catalogosDocs = [] } = useQuery({
+    queryKey: ['catalogo-documentos'],
+    queryFn: () => catalogosApi.documentos.getAll().then((r) => r.data.results || r.data),
+    staleTime: 5 * 60_000,
+  })
+
+  const handleDescargarPDF = async () => {
+    setPdfLoading(true)
+    try {
+      const fpcRows = formularios.map((f) => ({
+        numero:        f.numero,
+        periodo:       f.periodo,
+        tipo_planilla: f.tipo_planilla,
+        total_ganado:  f.total_ganado,
+      }))
+      const docsChecked = docsRespaldo.map((d) => [
+        String(d.documento),
+        { file: null },
+      ])
+      const values = {
+        asegurado_data:  sol.asegurado  || {},
+        empleador_data:  sol.empleador  || {},
+        tipo_causal:     sol.tipo_causal,
+        regional:        sol.regional,
+        prioridad:       sol.prioridad,
+        fecha_recepcion: sol.fecha_recepcion,
+        fecha_limite:    sol.fecha_limite,
+        detalle_causal:  sol.detalle_causal,
+      }
+      const blob = await pdf(
+        <SolicitudPDF
+          values={values}
+          fpcRows={fpcRows}
+          docsChecked={docsChecked}
+          tiposPlanilla={tiposPlanilla}
+          catalogosDocs={catalogosDocs}
+          tiposCausal={tiposCausal}
+          regionales={regionales}
+          numero={sol.numero_solicitud}
+        />
+      ).toBlob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `solicitud_${sol.numero_solicitud}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      toast.error('Error al generar PDF: ' + e.message)
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
+  return (
+    <Box>
+      {/* Botón descargar PDF */}
+      <Button
+        fullWidth
+        variant="outlined"
+        size="small"
+        startIcon={pdfLoading ? <CircularProgress size={14} /> : <PictureAsPdfIcon />}
+        disabled={pdfLoading}
+        onClick={handleDescargarPDF}
+        sx={{ mb: 2, borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}18` } }}
+      >
+        {pdfLoading ? 'Generando…' : 'Descargar Solicitud PDF'}
+      </Button>
+
+      {/* Lista de documentos con links */}
+      {docsRespaldo.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+          Sin documentos adjuntos.
+        </Typography>
+      ) : (
+        <Box sx={{ maxHeight: 340, overflowY: 'auto' }}>
+          {docsRespaldo.map((doc, idx) => {
+            const info = catalogosDocs.find((d) => d.id === doc.documento)
+            return (
+              <Box
+                key={doc.id}
+                sx={{
+                  display: 'flex', alignItems: 'flex-start', gap: 1,
+                  py: 1, borderBottom: '1px solid #2A3D6B',
+                }}
+              >
+                <AttachFileIcon sx={{ fontSize: 16, color: ORO, mt: 0.3, flexShrink: 0 }} />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="body2" fontWeight={600} noWrap>
+                    {info?.descripcion || info?.nombre || `Documento #${doc.documento}`}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                    {info?.codigo || ''}
+                  </Typography>
+                  {doc.archivo ? (
+                    <Box>
+                      <Chip
+                        label="Ver / Descargar"
+                        size="small"
+                        component="a"
+                        href={`http://localhost:8000${doc.archivo}`}
+                        target="_blank"
+                        clickable
+                        icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
+                        sx={{ mt: 0.5, bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem' }}
+                      />
+                    </Box>
+                  ) : (
+                    <Typography variant="caption" color="text.disabled">Sin archivo</Typography>
+                  )}
+                </Box>
+              </Box>
+            )
+          })}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
 function InfoRow({ label, value }) {
   return (
     <Box sx={{ display: 'flex', py: 0.8, borderBottom: '1px solid #2A3D6B' }}>
@@ -543,77 +693,90 @@ export default function SolicitudDetail() {
           <DocumentosRespaldo solicitudId={sol.id} />
         </Grid>
 
-        {/* Bitácora */}
-        <Grid item xs={12} md={6}>
+        {/* Historial + Documentos adjuntos */}
+        <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <HistoryIcon sx={{ color: ORO }} />
-                <Typography variant="subtitle1" fontWeight={700} sx={{ color: ORO }}>
-                  Historial / Bitácora
-                </Typography>
-              </Box>
-              {bitacora.length === 0 ? (
-                <Typography color="text.secondary" variant="body2">Sin entradas de bitácora.</Typography>
-              ) : (
-                <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
-                  {bitacora.map((entry, idx) => {
-                    const icon = ACCION_ICONS[entry.estado_nuevo] || { icon: <PlayArrowIcon />, color: ORO }
-                    return (
-                      <Box
-                        key={entry.id}
-                        sx={{
-                          display: 'flex',
-                          gap: 1.5,
-                          pb: 2,
-                          mb: idx < bitacora.length - 1 ? 2 : 0,
-                          borderBottom: idx < bitacora.length - 1 ? '1px solid #2A3D6B' : 'none',
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: '50%',
-                            bgcolor: `${icon.color}22`,
-                            color: icon.color,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                            '& svg': { fontSize: 16 },
-                          }}
-                        >
-                          {icon.icon}
-                        </Box>
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
-                            <Typography variant="body2" fontWeight={600}>
-                              {entry.estado_anterior_label
-                                ? `${entry.estado_anterior_label} → ${entry.estado_nuevo_label}`
-                                : entry.estado_nuevo_label || entry.accion}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {dayjs(entry.created_at).format('DD/MM/YYYY HH:mm')}
-                            </Typography>
-                          </Box>
-                          <Typography variant="caption" color="text.secondary">
-                            Por: {entry.usuario_nombre}
-                          </Typography>
-                          {entry.comentario && (
-                            <Typography
-                              variant="body2"
-                              sx={{ mt: 0.5, p: 1, bgcolor: '#0F1932', borderRadius: 1.5, fontSize: '0.82rem' }}
+              <Grid container spacing={2.5}>
+
+                {/* Columna izquierda: Bitácora */}
+                <Grid item xs={12} md={7}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <HistoryIcon sx={{ color: ORO }} />
+                    <Typography variant="subtitle1" fontWeight={700} sx={{ color: ORO }}>
+                      Historial / Bitácora
+                    </Typography>
+                  </Box>
+                  {bitacora.length === 0 ? (
+                    <Typography color="text.secondary" variant="body2">Sin entradas de bitácora.</Typography>
+                  ) : (
+                    <Box sx={{ maxHeight: 420, overflowY: 'auto', pr: 1 }}>
+                      {bitacora.map((entry, idx) => {
+                        const icon = ACCION_ICONS[entry.estado_nuevo] || { icon: <PlayArrowIcon />, color: ORO }
+                        return (
+                          <Box
+                            key={entry.id}
+                            sx={{
+                              display: 'flex',
+                              gap: 1.5,
+                              pb: 2,
+                              mb: idx < bitacora.length - 1 ? 2 : 0,
+                              borderBottom: idx < bitacora.length - 1 ? '1px solid #2A3D6B' : 'none',
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 32, height: 32, borderRadius: '50%',
+                                bgcolor: `${icon.color}22`, color: icon.color,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                flexShrink: 0, '& svg': { fontSize: 16 },
+                              }}
                             >
-                              {entry.comentario}
-                            </Typography>
-                          )}
-                        </Box>
-                      </Box>
-                    )
-                  })}
-                </Box>
-              )}
+                              {icon.icon}
+                            </Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 0.5 }}>
+                                <Typography variant="body2" fontWeight={600}>
+                                  {entry.estado_anterior_label
+                                    ? `${entry.estado_anterior_label} → ${entry.estado_nuevo_label}`
+                                    : entry.estado_nuevo_label || entry.accion}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {dayjs(entry.created_at).format('DD/MM/YYYY HH:mm')}
+                                </Typography>
+                              </Box>
+                              <Typography variant="caption" color="text.secondary">
+                                Por: {entry.usuario_nombre}
+                              </Typography>
+                              {entry.comentario && (
+                                <Typography
+                                  variant="body2"
+                                  sx={{ mt: 0.5, p: 1, bgcolor: '#0F1932', borderRadius: 1.5, fontSize: '0.82rem' }}
+                                >
+                                  {entry.comentario}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
+                        )
+                      })}
+                    </Box>
+                  )}
+                </Grid>
+
+                {/* Columna derecha: Documentos adjuntos + PDF */}
+                <Grid item xs={12} md={5}>
+                  <Divider orientation="vertical" sx={{ display: { xs: 'none', md: 'block' }, borderColor: '#2A3D6B', position: 'absolute', left: 0, top: 0, bottom: 0 }} />
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <FolderOpenIcon sx={{ color: ORO }} />
+                    <Typography variant="subtitle1" fontWeight={700} sx={{ color: ORO }}>
+                      Documentos Adjuntos
+                    </Typography>
+                  </Box>
+                  <DocsSidebar solicitudId={sol.id} sol={sol} />
+                </Grid>
+
+              </Grid>
             </CardContent>
           </Card>
         </Grid>
