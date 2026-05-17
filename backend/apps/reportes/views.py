@@ -162,11 +162,24 @@ class ReporteCausalView(APIView):
         fecha_desde = request.query_params.get('fecha_desde')
         fecha_hasta = request.query_params.get('fecha_hasta')
 
+        tipo_regional = request.query_params.get('tipo_regional')
+        regional      = request.query_params.get('regional')
+        estado        = request.query_params.get('estado')
+        prioridad     = request.query_params.get('prioridad')
+
         qs = Solicitud.objects.filter(tipo_causal__isnull=False)
         if fecha_desde:
             qs = qs.filter(created_at__date__gte=fecha_desde)
         if fecha_hasta:
             qs = qs.filter(created_at__date__lte=fecha_hasta)
+        if tipo_regional:
+            qs = qs.filter(regional__tipo_regional=tipo_regional)
+        if regional:
+            qs = qs.filter(regional=regional)
+        if estado:
+            qs = qs.filter(estado=estado)
+        if prioridad:
+            qs = qs.filter(prioridad=prioridad)
 
         por_causal = list(
             qs.values('tipo_causal__id', 'tipo_causal__nombre', 'tipo_causal__tipo')
@@ -192,11 +205,24 @@ class ReporteTipoRegionalView(APIView):
         fecha_desde = request.query_params.get('fecha_desde')
         fecha_hasta = request.query_params.get('fecha_hasta')
 
+        tipo_regional = request.query_params.get('tipo_regional')
+        regional      = request.query_params.get('regional')
+        estado        = request.query_params.get('estado')
+        prioridad     = request.query_params.get('prioridad')
+
         qs = Solicitud.objects.filter(regional__isnull=False)
         if fecha_desde:
             qs = qs.filter(created_at__date__gte=fecha_desde)
         if fecha_hasta:
             qs = qs.filter(created_at__date__lte=fecha_hasta)
+        if tipo_regional:
+            qs = qs.filter(regional__tipo_regional=tipo_regional)
+        if regional:
+            qs = qs.filter(regional=regional)
+        if estado:
+            qs = qs.filter(estado=estado)
+        if prioridad:
+            qs = qs.filter(prioridad=prioridad)
 
         por_tipo = list(
             qs.values(

@@ -17,7 +17,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getProductividad, getCausales, getTipoRegional, exportarExcel } from '../../api/reportes'
 import catalogosApi from '../../api/catalogos'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
-import { ORO, NAVY, NAVY2 } from '../../theme'
+import { ORO, NAVY2 } from '../../theme'
 import toast from 'react-hot-toast'
 
 const PIE_COLORS = ['#CBab58', '#2196f3', '#4caf50', '#f44336', '#9c27b0', '#ff9800']
@@ -40,8 +40,114 @@ const PRIORIDADES = [
   { value: 'URGENTE', label: 'Urgente' },
 ]
 
-const PROD_EMPTY = { tipo_regional: '', regional: '', estado: '', prioridad: '' }
+const FILTER_EMPTY = { tipo_regional: '', regional: '', estado: '', prioridad: '' }
 
+/* ── Componente reutilizable de filtros ─────────────────────────────── */
+function FilterPanel({ filters, applied, onSet, onSetApplied, onApply, onClear, tiposRegional, regionales }) {
+  const hasActive = Object.values(applied).some(Boolean)
+  return (
+    <>
+      <Box sx={{ border: '1px solid #2A3D6B', borderRadius: 1, p: 2, mb: 2 }}>
+        <Grid container spacing={1.5} alignItems="flex-end">
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Tipo de Regional</InputLabel>
+              <Select value={filters.tipo_regional} label="Tipo de Regional"
+                onChange={(e) => { onSet('tipo_regional', e.target.value); onSet('regional', '') }}>
+                <MenuItem value="">Todos</MenuItem>
+                {tiposRegional.map((t) => <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Regional</InputLabel>
+              <Select value={filters.regional} label="Regional"
+                onChange={(e) => onSet('regional', e.target.value)}>
+                <MenuItem value="">Todas</MenuItem>
+                {regionales
+                  .filter((r) => !filters.tipo_regional || r.tipo_regional === Number(filters.tipo_regional))
+                  .map((r) => <MenuItem key={r.id} value={r.id}>{r.nombre}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Estado</InputLabel>
+              <Select value={filters.estado} label="Estado"
+                onChange={(e) => onSet('estado', e.target.value)}>
+                <MenuItem value="">Todos</MenuItem>
+                {ESTADOS.map((e) => <MenuItem key={e.value} value={e.value}>{e.label}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Prioridad</InputLabel>
+              <Select value={filters.prioridad} label="Prioridad"
+                onChange={(e) => onSet('prioridad', e.target.value)}>
+                <MenuItem value="">Todas</MenuItem>
+                {PRIORIDADES.map((p) => <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>)}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <Stack direction="row" spacing={1} justifyContent="flex-end">
+              <Button size="small" variant="outlined" color="inherit" onClick={onClear}>Limpiar</Button>
+              <Button size="small" variant="contained" onClick={onApply}
+                sx={{ bgcolor: ORO, color: '#0F1932', fontWeight: 700, '&:hover': { bgcolor: '#b8943e' } }}>
+                Aplicar
+              </Button>
+            </Stack>
+          </Grid>
+        </Grid>
+      </Box>
+      {hasActive && (
+        <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mb: 1.5, gap: 0.5 }}>
+          {applied.tipo_regional && (
+            <Chip size="small"
+              label={`Tipo Regional: ${tiposRegional.find((t) => t.id === Number(applied.tipo_regional))?.nombre || applied.tipo_regional}`}
+              onDelete={() => { onSet('tipo_regional', ''); onSet('regional', ''); onSetApplied((a) => ({ ...a, tipo_regional: '', regional: '' })) }} />
+          )}
+          {applied.regional && (
+            <Chip size="small"
+              label={`Regional: ${regionales.find((r) => r.id === Number(applied.regional))?.nombre || applied.regional}`}
+              onDelete={() => { onSet('regional', ''); onSetApplied((a) => ({ ...a, regional: '' })) }} />
+          )}
+          {applied.estado && (
+            <Chip size="small"
+              label={`Estado: ${ESTADOS.find((e) => e.value === applied.estado)?.label || applied.estado}`}
+              onDelete={() => { onSet('estado', ''); onSetApplied((a) => ({ ...a, estado: '' })) }} />
+          )}
+          {applied.prioridad && (
+            <Chip size="small"
+              label={`Prioridad: ${PRIORIDADES.find((p) => p.value === applied.prioridad)?.label || applied.prioridad}`}
+              onDelete={() => { onSet('prioridad', ''); onSetApplied((a) => ({ ...a, prioridad: '' })) }} />
+          )}
+        </Stack>
+      )}
+    </>
+  )
+}
+
+/* ── Botón de toggle de filtros ─────────────────────────────────────── */
+function FilterToggleBtn({ show, onToggle, activeCount }) {
+  return (
+    <Button
+      size="small"
+      variant={show ? 'contained' : 'outlined'}
+      startIcon={show ? <FilterListOffIcon /> : <FilterListIcon />}
+      onClick={onToggle}
+      sx={show
+        ? { bgcolor: ORO, color: '#0F1932', fontWeight: 700, '&:hover': { bgcolor: '#b8943e' } }
+        : { borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}11` } }}
+    >
+      Filtros{activeCount ? ` (${activeCount})` : ''}
+    </Button>
+  )
+}
+
+/* ── Vista detallada por analista ───────────────────────────────────── */
 function AnalystDetail({ row }) {
   const enProceso = Math.max(0, row.total - row.finalizadas - row.aprobadas - row.rechazadas)
   const pctFin    = row.total > 0 ? Math.round((row.finalizadas / row.total) * 100) : 0
@@ -120,34 +226,57 @@ function SectionHeader({ title }) {
   )
 }
 
+/* ── Página principal ───────────────────────────────────────────────── */
 export default function ReportesPage() {
-  const [tab, setTab]           = useState(0)
+  const [tab, setTab]               = useState(0)
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
-  const [downloading, setDownloading]     = useState(false)
-  const [analystTab, setAnalystTab]       = useState(0)
-  const [prodFilters, setProdFilters]     = useState(PROD_EMPTY)
-  const [prodApplied, setProdApplied]     = useState(PROD_EMPTY)
-  const [showProdFilters, setShowProdFilters] = useState(false)
+  const [downloading, setDownloading] = useState(false)
 
-  const setPF = (k, v) => setProdFilters((f) => ({ ...f, [k]: v }))
-  const applyProd  = () => { setProdApplied({ ...prodFilters }); setAnalystTab(0) }
-  const clearProd  = () => { setProdFilters(PROD_EMPTY); setProdApplied(PROD_EMPTY); setAnalystTab(0) }
-  const hasProdActive = Object.values(prodApplied).some(Boolean)
+  // Sub-tab analistas
+  const [analystTab, setAnalystTab] = useState(0)
 
-  const params = {
+  // Filtros productividad
+  const [prodF, setProdF]         = useState(FILTER_EMPTY)
+  const [prodA, setProdA]         = useState(FILTER_EMPTY)
+  const [showProd, setShowProd]   = useState(false)
+  const setProdKey = (k, v) => setProdF((f) => ({ ...f, [k]: v }))
+  const applyProd  = () => { setProdA({ ...prodF }); setAnalystTab(0) }
+  const clearProd  = () => { setProdF(FILTER_EMPTY); setProdA(FILTER_EMPTY); setAnalystTab(0) }
+
+  // Filtros causales
+  const [causalF, setCausalF]       = useState(FILTER_EMPTY)
+  const [causalA, setCausalA]       = useState(FILTER_EMPTY)
+  const [showCausal, setShowCausal] = useState(false)
+  const setCausalKey = (k, v) => setCausalF((f) => ({ ...f, [k]: v }))
+  const applyCausal  = () => setCausalA({ ...causalF })
+  const clearCausal  = () => { setCausalF(FILTER_EMPTY); setCausalA(FILTER_EMPTY) }
+
+  // Filtros tipo regional
+  const [trF, setTrF]         = useState(FILTER_EMPTY)
+  const [trA, setTrA]         = useState(FILTER_EMPTY)
+  const [showTr, setShowTr]   = useState(false)
+  const setTrKey = (k, v) => setTrF((f) => ({ ...f, [k]: v }))
+  const applyTr  = () => setTrA({ ...trF })
+  const clearTr  = () => { setTrF(FILTER_EMPTY); setTrA(FILTER_EMPTY) }
+
+  const activeCount = (a) => Object.values(a).filter(Boolean).length
+
+  // Parámetros base (fechas)
+  const dateParams = {
     ...(fechaDesde && { fecha_desde: fechaDesde }),
     ...(fechaHasta && { fecha_hasta: fechaHasta }),
   }
 
-  const prodParams = {
-    ...params,
-    ...(prodApplied.tipo_regional && { tipo_regional: prodApplied.tipo_regional }),
-    ...(prodApplied.regional      && { regional:      prodApplied.regional      }),
-    ...(prodApplied.estado        && { estado:        prodApplied.estado        }),
-    ...(prodApplied.prioridad     && { prioridad:     prodApplied.prioridad     }),
-  }
+  const buildParams = (applied) => ({
+    ...dateParams,
+    ...(applied.tipo_regional && { tipo_regional: applied.tipo_regional }),
+    ...(applied.regional      && { regional:      applied.regional      }),
+    ...(applied.estado        && { estado:        applied.estado        }),
+    ...(applied.prioridad     && { prioridad:     applied.prioridad     }),
+  })
 
+  // Catálogos compartidos
   const { data: tiposRegional = [] } = useQuery({
     queryKey: ['tipo-regional'],
     queryFn:  () => catalogosApi.tipoRegional.getAll().then((r) => r.data.results || r.data),
@@ -159,25 +288,28 @@ export default function ReportesPage() {
     staleTime: 5 * 60_000,
   })
 
-  const { data: prodData, isLoading: loadProd } = useQuery({
+  // Queries de reportes
+  const prodParams   = buildParams(prodA)
+  const causalParams = buildParams(causalA)
+  const trParams     = buildParams(trA)
+
+  const { data: prodData,    isLoading: loadProd    } = useQuery({
     queryKey: ['reporte-productividad', prodParams],
     queryFn:  () => getProductividad(prodParams).then((r) => r.data),
   })
-
-  const { data: causalData, isLoading: loadCausal } = useQuery({
-    queryKey: ['reporte-causales', params],
-    queryFn:  () => getCausales(params).then((r) => r.data),
+  const { data: causalData,  isLoading: loadCausal  } = useQuery({
+    queryKey: ['reporte-causales', causalParams],
+    queryFn:  () => getCausales(causalParams).then((r) => r.data),
   })
-
   const { data: tipoRegData, isLoading: loadTipoReg } = useQuery({
-    queryKey: ['reporte-tipo-regional', params],
-    queryFn:  () => getTipoRegional(params).then((r) => r.data),
+    queryKey: ['reporte-tipo-regional', trParams],
+    queryFn:  () => getTipoRegional(trParams).then((r) => r.data),
   })
 
   const handleExportar = async (tipo) => {
     setDownloading(true)
     try {
-      const res = await exportarExcel({ tipo, ...params })
+      const res = await exportarExcel({ tipo, ...dateParams })
       const url = URL.createObjectURL(new Blob([res.data]))
       const a   = document.createElement('a')
       a.href    = url
@@ -192,10 +324,12 @@ export default function ReportesPage() {
     }
   }
 
-  const productividad    = prodData?.productividad         || []
-  const porCausal        = causalData?.por_causal          || []
-  const porTipoRegional  = tipoRegData?.por_tipo_regional  || []
-  const porRegionalDet   = tipoRegData?.por_regional       || []
+  const productividad   = prodData?.productividad        || []
+  const porCausal       = causalData?.por_causal         || []
+  const porTipoRegional = tipoRegData?.por_tipo_regional || []
+  const porRegionalDet  = tipoRegData?.por_regional      || []
+
+  const catalogProps = { tiposRegional, regionales }
 
   return (
     <Box>
@@ -205,28 +339,17 @@ export default function ReportesPage() {
           <Typography variant="body2" color="text.secondary">Análisis y estadísticas del sistema</Typography>
         </Box>
 
-        {/* Filtros de fecha */}
+        {/* Filtros de fecha globales */}
         <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
-          <TextField
-            label="Desde"
-            type="date"
-            size="small"
-            value={fechaDesde}
+          <TextField label="Desde" type="date" size="small" value={fechaDesde}
             onChange={(e) => setFechaDesde(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ width: 155 }}
-          />
-          <TextField
-            label="Hasta"
-            type="date"
-            size="small"
-            value={fechaHasta}
+            InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
+          <TextField label="Hasta" type="date" size="small" value={fechaHasta}
             onChange={(e) => setFechaHasta(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            sx={{ width: 155 }}
-          />
+            InputLabelProps={{ shrink: true }} sx={{ width: 155 }} />
           {(fechaDesde || fechaHasta) && (
-            <Button size="small" variant="outlined" color="inherit" onClick={() => { setFechaDesde(''); setFechaHasta('') }}>
+            <Button size="small" variant="outlined" color="inherit"
+              onClick={() => { setFechaDesde(''); setFechaHasta('') }}>
               Limpiar
             </Button>
           )}
@@ -235,9 +358,7 @@ export default function ReportesPage() {
 
       <Card sx={{ mb: 2.5 }}>
         <Box sx={{ borderBottom: '1px solid #2A3D6B' }}>
-          <Tabs
-            value={tab}
-            onChange={(_, v) => setTab(v)}
+          <Tabs value={tab} onChange={(_, v) => setTab(v)}
             sx={{
               '& .MuiTab-root': { fontWeight: 600 },
               '& .Mui-selected': { color: `${ORO} !important` },
@@ -250,7 +371,7 @@ export default function ReportesPage() {
           </Tabs>
         </Box>
 
-        {/* TAB 0: Productividad */}
+        {/* ── TAB 0: Productividad ───────────────────────────────────── */}
         {tab === 0 && (
           <CardContent>
             {loadProd ? <LoadingSpinner message="Cargando reporte..." /> : (
@@ -258,134 +379,33 @@ export default function ReportesPage() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <SectionHeader title="Productividad por Analista" />
                   <Stack direction="row" spacing={1}>
-                    <Button
-                      size="small"
-                      variant={showProdFilters ? 'contained' : 'outlined'}
-                      startIcon={showProdFilters ? <FilterListOffIcon /> : <FilterListIcon />}
-                      onClick={() => setShowProdFilters((v) => !v)}
-                      sx={showProdFilters
-                        ? { bgcolor: ORO, color: '#0F1932', fontWeight: 700, '&:hover': { bgcolor: '#b8943e' } }
-                        : { borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}11` } }}
-                    >
-                      Filtros {hasProdActive && `(${Object.values(prodApplied).filter(Boolean).length})`}
-                    </Button>
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<DownloadIcon />}
-                      onClick={() => handleExportar('productividad')}
-                      disabled={downloading}
-                      sx={{ borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}11` } }}
-                    >
+                    <FilterToggleBtn show={showProd} onToggle={() => setShowProd((v) => !v)} activeCount={activeCount(prodA)} />
+                    <Button variant="outlined" size="small" startIcon={<DownloadIcon />}
+                      onClick={() => handleExportar('productividad')} disabled={downloading}
+                      sx={{ borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}11` } }}>
                       Exportar
                     </Button>
                   </Stack>
                 </Box>
 
-                {/* Panel de filtros */}
-                <Collapse in={showProdFilters}>
-                  <Box sx={{ border: '1px solid #2A3D6B', borderRadius: 1, p: 2, mb: 2 }}>
-                    <Grid container spacing={1.5} alignItems="flex-end">
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormControl size="small" fullWidth>
-                          <InputLabel>Tipo de Regional</InputLabel>
-                          <Select value={prodFilters.tipo_regional} label="Tipo de Regional"
-                            onChange={(e) => { setPF('tipo_regional', e.target.value); setPF('regional', '') }}>
-                            <MenuItem value="">Todos</MenuItem>
-                            {tiposRegional.map((t) => (
-                              <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormControl size="small" fullWidth>
-                          <InputLabel>Regional</InputLabel>
-                          <Select value={prodFilters.regional} label="Regional"
-                            onChange={(e) => setPF('regional', e.target.value)}>
-                            <MenuItem value="">Todas</MenuItem>
-                            {regionales
-                              .filter((r) => !prodFilters.tipo_regional || r.tipo_regional === Number(prodFilters.tipo_regional))
-                              .map((r) => (
-                                <MenuItem key={r.id} value={r.id}>{r.nombre}</MenuItem>
-                              ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormControl size="small" fullWidth>
-                          <InputLabel>Estado</InputLabel>
-                          <Select value={prodFilters.estado} label="Estado"
-                            onChange={(e) => setPF('estado', e.target.value)}>
-                            <MenuItem value="">Todos</MenuItem>
-                            {ESTADOS.map((e) => (
-                              <MenuItem key={e.value} value={e.value}>{e.label}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12} sm={6} md={3}>
-                        <FormControl size="small" fullWidth>
-                          <InputLabel>Prioridad</InputLabel>
-                          <Select value={prodFilters.prioridad} label="Prioridad"
-                            onChange={(e) => setPF('prioridad', e.target.value)}>
-                            <MenuItem value="">Todas</MenuItem>
-                            {PRIORIDADES.map((p) => (
-                              <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
-                          <Button size="small" variant="outlined" color="inherit" onClick={clearProd}>Limpiar</Button>
-                          <Button size="small" variant="contained"
-                            onClick={applyProd}
-                            sx={{ bgcolor: ORO, color: '#0F1932', fontWeight: 700, '&:hover': { bgcolor: '#b8943e' } }}>
-                            Aplicar
-                          </Button>
-                        </Stack>
-                      </Grid>
-                    </Grid>
-                  </Box>
-                  {/* Chips de filtros activos */}
-                  {hasProdActive && (
-                    <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mb: 1.5, gap: 0.5 }}>
-                      {prodApplied.tipo_regional && (
-                        <Chip size="small"
-                          label={`Tipo Regional: ${tiposRegional.find((t) => t.id === Number(prodApplied.tipo_regional))?.nombre || prodApplied.tipo_regional}`}
-                          onDelete={() => { setPF('tipo_regional', ''); setPF('regional', ''); setProdApplied((a) => ({ ...a, tipo_regional: '', regional: '' })) }} />
-                      )}
-                      {prodApplied.regional && (
-                        <Chip size="small"
-                          label={`Regional: ${regionales.find((r) => r.id === Number(prodApplied.regional))?.nombre || prodApplied.regional}`}
-                          onDelete={() => { setPF('regional', ''); setProdApplied((a) => ({ ...a, regional: '' })) }} />
-                      )}
-                      {prodApplied.estado && (
-                        <Chip size="small"
-                          label={`Estado: ${ESTADOS.find((e) => e.value === prodApplied.estado)?.label || prodApplied.estado}`}
-                          onDelete={() => { setPF('estado', ''); setProdApplied((a) => ({ ...a, estado: '' })) }} />
-                      )}
-                      {prodApplied.prioridad && (
-                        <Chip size="small"
-                          label={`Prioridad: ${PRIORIDADES.find((p) => p.value === prodApplied.prioridad)?.label || prodApplied.prioridad}`}
-                          onDelete={() => { setPF('prioridad', ''); setProdApplied((a) => ({ ...a, prioridad: '' })) }} />
-                      )}
-                    </Stack>
-                  )}
+                <Collapse in={showProd}>
+                  <FilterPanel
+                    filters={prodF} applied={prodA}
+                    onSet={setProdKey} onSetApplied={setProdA}
+                    onApply={applyProd} onClear={clearProd}
+                    {...catalogProps}
+                  />
                 </Collapse>
 
                 {!productividad.length ? (
                   <Typography color="text.secondary" variant="body2">Sin datos para el período seleccionado.</Typography>
                 ) : (
                   <>
-                    {/* Sub-pestañas por analista */}
                     <Box sx={{ borderBottom: 1, borderColor: '#2A3D6B', mb: 2.5 }}>
                       <Tabs
                         value={Math.min(analystTab, productividad.length)}
                         onChange={(_, v) => setAnalystTab(v)}
-                        variant="scrollable"
-                        scrollButtons="auto"
+                        variant="scrollable" scrollButtons="auto"
                         sx={{
                           '& .MuiTab-root': { fontWeight: 600, fontSize: '0.78rem', minWidth: 100, textTransform: 'none' },
                           '& .Mui-selected': { color: `${ORO} !important` },
@@ -393,13 +413,10 @@ export default function ReportesPage() {
                         }}
                       >
                         <Tab label="Resumen General" />
-                        {productividad.map((row) => (
-                          <Tab key={row.analista_id} label={row.analista} />
-                        ))}
+                        {productividad.map((row) => <Tab key={row.analista_id} label={row.analista} />)}
                       </Tabs>
                     </Box>
 
-                    {/* Resumen general */}
                     {analystTab === 0 && (
                       <Grid container spacing={3}>
                         <Grid item xs={12} lg={6}>
@@ -426,12 +443,9 @@ export default function ReportesPage() {
                               </TableHead>
                               <TableBody>
                                 {productividad.map((row, i) => (
-                                  <TableRow
-                                    key={row.analista_id}
-                                    hover
+                                  <TableRow key={row.analista_id} hover
                                     sx={{ cursor: 'pointer', '&:last-child td': { border: 0 } }}
-                                    onClick={() => setAnalystTab(i + 1)}
-                                  >
+                                    onClick={() => setAnalystTab(i + 1)}>
                                     <TableCell sx={{ fontWeight: 600 }}>{row.analista}</TableCell>
                                     <TableCell><Chip label={row.total} size="small" sx={{ bgcolor: `${ORO}22`, color: ORO, fontWeight: 700 }} /></TableCell>
                                     <TableCell><Chip label={row.finalizadas} size="small" sx={{ bgcolor: '#1b5e2044', color: '#4caf50', fontWeight: 700 }} /></TableCell>
@@ -449,7 +463,6 @@ export default function ReportesPage() {
                       </Grid>
                     )}
 
-                    {/* Vista individual por analista */}
                     {productividad.map((row, i) =>
                       analystTab === i + 1 && <AnalystDetail key={row.analista_id} row={row} />
                     )}
@@ -460,24 +473,31 @@ export default function ReportesPage() {
           </CardContent>
         )}
 
-        {/* TAB 1: Causales */}
+        {/* ── TAB 1: Causales ───────────────────────────────────────── */}
         {tab === 1 && (
           <CardContent>
             {loadCausal ? <LoadingSpinner message="Cargando reporte..." /> : (
               <>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <SectionHeader title="Solicitudes por Tipo de Causal" />
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => handleExportar('solicitudes')}
-                    disabled={downloading}
-                    sx={{ borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}11` } }}
-                  >
-                    Exportar Excel
-                  </Button>
+                  <Stack direction="row" spacing={1}>
+                    <FilterToggleBtn show={showCausal} onToggle={() => setShowCausal((v) => !v)} activeCount={activeCount(causalA)} />
+                    <Button variant="outlined" size="small" startIcon={<DownloadIcon />}
+                      onClick={() => handleExportar('solicitudes')} disabled={downloading}
+                      sx={{ borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}11` } }}>
+                      Exportar
+                    </Button>
+                  </Stack>
                 </Box>
+
+                <Collapse in={showCausal}>
+                  <FilterPanel
+                    filters={causalF} applied={causalA}
+                    onSet={setCausalKey} onSetApplied={setCausalA}
+                    onApply={applyCausal} onClear={clearCausal}
+                    {...catalogProps}
+                  />
+                </Collapse>
 
                 {!porCausal.length ? (
                   <Typography color="text.secondary" variant="body2">Sin datos para el período seleccionado.</Typography>
@@ -486,19 +506,11 @@ export default function ReportesPage() {
                     <Grid item xs={12} lg={5}>
                       <ResponsiveContainer width="100%" height={280}>
                         <PieChart>
-                          <Pie
-                            data={porCausal}
-                            dataKey="total"
-                            nameKey="tipo_causal__nombre"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={100}
+                          <Pie data={porCausal} dataKey="total" nameKey="tipo_causal__nombre"
+                            cx="50%" cy="50%" outerRadius={100}
                             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            labelLine={false}
-                          >
-                            {porCausal.map((_, i) => (
-                              <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                            ))}
+                            labelLine={false}>
+                            {porCausal.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                           </Pie>
                           <Tooltip contentStyle={{ backgroundColor: NAVY2, border: `1px solid ${ORO}`, borderRadius: 8 }} itemStyle={{ color: '#fff' }} />
                           <Legend wrapperStyle={{ fontSize: 12, color: '#B0B8D0' }} />
@@ -543,18 +555,30 @@ export default function ReportesPage() {
             )}
           </CardContent>
         )}
-        {/* TAB 2: Tipo Regional */}
+
+        {/* ── TAB 2: Tipo Regional ──────────────────────────────────── */}
         {tab === 2 && (
           <CardContent>
             {loadTipoReg ? <LoadingSpinner message="Cargando reporte..." /> : (
               <>
-                <SectionHeader title="Distribución por Tipo de Regional" />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <SectionHeader title="Distribución por Tipo de Regional" />
+                  <FilterToggleBtn show={showTr} onToggle={() => setShowTr((v) => !v)} activeCount={activeCount(trA)} />
+                </Box>
+
+                <Collapse in={showTr}>
+                  <FilterPanel
+                    filters={trF} applied={trA}
+                    onSet={setTrKey} onSetApplied={setTrA}
+                    onApply={applyTr} onClear={clearTr}
+                    {...catalogProps}
+                  />
+                </Collapse>
 
                 {!porTipoRegional.length ? (
                   <Typography color="text.secondary" variant="body2">Sin datos para el período seleccionado.</Typography>
                 ) : (
                   <Grid container spacing={3}>
-                    {/* Gráfico de barras por tipo regional */}
                     <Grid item xs={12} lg={5}>
                       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
                         Solicitudes por Tipo Regional
@@ -564,23 +588,19 @@ export default function ReportesPage() {
                           <CartesianGrid strokeDasharray="3 3" stroke="#2A3D6B" />
                           <XAxis dataKey="nombre" tick={{ fill: '#B0B8D0', fontSize: 12 }} />
                           <YAxis tick={{ fill: '#B0B8D0', fontSize: 11 }} allowDecimals={false} />
-                          <Tooltip
-                            contentStyle={{ backgroundColor: NAVY2, border: `1px solid ${ORO}`, borderRadius: 8 }}
-                            labelStyle={{ color: ORO, fontWeight: 700 }}
-                            itemStyle={{ color: '#fff' }}
-                          />
-                          <Bar dataKey="total"      name="Total"      radius={[4,4,0,0]} fill={ORO} />
-                          <Bar dataKey="finalizadas" name="Finalizadas" radius={[4,4,0,0]} fill="#4caf50" />
-                          <Bar dataKey="aprobadas"  name="Aprobadas"  radius={[4,4,0,0]} fill="#2196f3" />
+                          <Tooltip contentStyle={{ backgroundColor: NAVY2, border: `1px solid ${ORO}`, borderRadius: 8 }} labelStyle={{ color: ORO, fontWeight: 700 }} itemStyle={{ color: '#fff' }} />
+                          <Bar dataKey="total"       name="Total"       radius={[4,4,0,0]} fill={ORO}       />
+                          <Bar dataKey="finalizadas" name="Finalizadas" radius={[4,4,0,0]} fill="#4caf50"   />
+                          <Bar dataKey="aprobadas"   name="Aprobadas"   radius={[4,4,0,0]} fill="#2196f3"   />
                         </BarChart>
                       </ResponsiveContainer>
 
-                      {/* Totales resumen */}
                       <Grid container spacing={1} sx={{ mt: 1 }}>
                         {porTipoRegional.map((t, i) => (
                           <Grid item xs={12 / porTipoRegional.length} key={t.id || i}>
                             <Box sx={{ textAlign: 'center', p: 1, border: '1px solid #2A3D6B', borderRadius: 1 }}>
-                              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>
+                              <Typography variant="caption" color="text.secondary"
+                                sx={{ textTransform: 'uppercase', fontWeight: 700, display: 'block' }}>
                                 {t.nombre}
                               </Typography>
                               <Typography variant="h6" fontWeight={800} sx={{ color: ORO }}>{t.total}</Typography>
@@ -591,7 +611,6 @@ export default function ReportesPage() {
                       </Grid>
                     </Grid>
 
-                    {/* Tabla detalle por regional */}
                     <Grid item xs={12} lg={7}>
                       <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
                         Detalle por Regional
@@ -607,20 +626,16 @@ export default function ReportesPage() {
                           </TableHead>
                           <TableBody>
                             {porTipoRegional.map((tipo, ti) => {
-                              const regionales = porRegionalDet.filter((r) => r.tipo_regional === tipo.nombre)
-                              return regionales.map((reg, ri) => (
+                              const regs = porRegionalDet.filter((r) => r.tipo_regional === tipo.nombre)
+                              return regs.map((reg, ri) => (
                                 <TableRow key={reg.regional_id} sx={{ '&:last-child td': { border: 0 } }}>
                                   {ri === 0 && (
-                                    <TableCell
-                                      rowSpan={regionales.length}
+                                    <TableCell rowSpan={regs.length}
                                       sx={{
-                                        fontWeight: 800,
-                                        verticalAlign: 'middle',
+                                        fontWeight: 800, verticalAlign: 'middle',
                                         borderLeft: `3px solid ${PIE_COLORS[ti % PIE_COLORS.length]}`,
-                                        pl: 1.5,
-                                        bgcolor: `${PIE_COLORS[ti % PIE_COLORS.length]}11`,
-                                      }}
-                                    >
+                                        pl: 1.5, bgcolor: `${PIE_COLORS[ti % PIE_COLORS.length]}11`,
+                                      }}>
                                       {tipo.nombre}
                                       <Typography variant="caption" display="block" color="text.secondary">
                                         {tipo.total} total
