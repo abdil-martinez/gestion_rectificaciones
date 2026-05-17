@@ -14,7 +14,7 @@ import {
   ResponsiveContainer, Cell, PieChart, Pie, Legend,
 } from 'recharts'
 import { useQuery } from '@tanstack/react-query'
-import { getProductividad, getCausales, getTipoRegional, exportarExcel } from '../../api/reportes'
+import { getProductividad, getCausales, getTipoRegional, getRegional, exportarExcel } from '../../api/reportes'
 import catalogosApi from '../../api/catalogos'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import { ORO, NAVY2 } from '../../theme'
@@ -260,6 +260,14 @@ export default function ReportesPage() {
   const applyTr  = () => setTrA({ ...trF })
   const clearTr  = () => { setTrF(FILTER_EMPTY); setTrA(FILTER_EMPTY) }
 
+  // Filtros regional
+  const [regF, setRegF]         = useState(FILTER_EMPTY)
+  const [regA, setRegA]         = useState(FILTER_EMPTY)
+  const [showReg, setShowReg]   = useState(false)
+  const setRegKey = (k, v) => setRegF((f) => ({ ...f, [k]: v }))
+  const applyReg  = () => setRegA({ ...regF })
+  const clearReg  = () => { setRegF(FILTER_EMPTY); setRegA(FILTER_EMPTY) }
+
   const activeCount = (a) => Object.values(a).filter(Boolean).length
 
   // Parámetros base (fechas)
@@ -292,6 +300,7 @@ export default function ReportesPage() {
   const prodParams   = buildParams(prodA)
   const causalParams = buildParams(causalA)
   const trParams     = buildParams(trA)
+  const regParams    = buildParams(regA)
 
   const { data: prodData,    isLoading: loadProd    } = useQuery({
     queryKey: ['reporte-productividad', prodParams],
@@ -304,6 +313,10 @@ export default function ReportesPage() {
   const { data: tipoRegData, isLoading: loadTipoReg } = useQuery({
     queryKey: ['reporte-tipo-regional', trParams],
     queryFn:  () => getTipoRegional(trParams).then((r) => r.data),
+  })
+  const { data: regionalData, isLoading: loadRegional } = useQuery({
+    queryKey: ['reporte-regional', regParams],
+    queryFn:  () => getRegional(regParams).then((r) => r.data),
   })
 
   const handleExportar = async (tipo) => {
@@ -328,6 +341,7 @@ export default function ReportesPage() {
   const porCausal       = causalData?.por_causal         || []
   const porTipoRegional = tipoRegData?.por_tipo_regional || []
   const porRegionalDet  = tipoRegData?.por_regional      || []
+  const porRegional     = regionalData?.por_regional     || []
 
   const catalogProps = { tiposRegional, regionales }
 
@@ -368,6 +382,7 @@ export default function ReportesPage() {
             <Tab label="Productividad por Analista" />
             <Tab label="Solicitudes por Causal" />
             <Tab label="Distribución por Tipo Regional" />
+            <Tab label="Solicitudes por Regional" />
           </Tabs>
         </Box>
 
@@ -653,6 +668,86 @@ export default function ReportesPage() {
                                 </TableRow>
                               ))
                             })}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Grid>
+                  </Grid>
+                )}
+              </>
+            )}
+          </CardContent>
+        )}
+        {/* ── TAB 3: Solicitudes por Regional ──────────────────────── */}
+        {tab === 3 && (
+          <CardContent>
+            {loadRegional ? <LoadingSpinner message="Cargando reporte..." /> : (
+              <>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <SectionHeader title="Solicitudes por Regional" />
+                  <FilterToggleBtn show={showReg} onToggle={() => setShowReg((v) => !v)} activeCount={activeCount(regA)} />
+                </Box>
+
+                <Collapse in={showReg}>
+                  <FilterPanel
+                    filters={regF} applied={regA}
+                    onSet={setRegKey} onSetApplied={setRegA}
+                    onApply={applyReg} onClear={clearReg}
+                    {...catalogProps}
+                  />
+                </Collapse>
+
+                {!porRegional.length ? (
+                  <Typography color="text.secondary" variant="body2">Sin datos para el período seleccionado.</Typography>
+                ) : (
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} lg={6}>
+                      <ResponsiveContainer width="100%" height={Math.max(220, porRegional.length * 28)}>
+                        <BarChart data={porRegional} layout="vertical"
+                          margin={{ top: 0, right: 40, left: 130, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#2A3D6B" horizontal={false} />
+                          <XAxis type="number" tick={{ fill: '#B0B8D0', fontSize: 11 }} allowDecimals={false} />
+                          <YAxis type="category" dataKey="regional"
+                            tick={{ fill: '#B0B8D0', fontSize: 11 }} width={130} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: NAVY2, border: `1px solid ${ORO}`, borderRadius: 8 }}
+                            labelStyle={{ color: ORO, fontWeight: 700 }}
+                            itemStyle={{ color: '#fff' }}
+                          />
+                          <Bar dataKey="total"       name="Total"       radius={[0,4,4,0]} fill={ORO}     />
+                          <Bar dataKey="finalizadas" name="Finalizadas" radius={[0,4,4,0]} fill="#4caf50" />
+                          <Bar dataKey="aprobadas"   name="Aprobadas"   radius={[0,4,4,0]} fill="#2196f3" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </Grid>
+                    <Grid item xs={12} lg={6}>
+                      <TableContainer>
+                        <Table size="small">
+                          <TableHead>
+                            <TableRow>
+                              {['Regional', 'Tipo Regional', 'Total', 'Finalizadas', 'Aprobadas', 'Rechazadas'].map((h) => (
+                                <TableCell key={h} sx={{ color: ORO, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase' }}>{h}</TableCell>
+                              ))}
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {porRegional.map((row) => (
+                              <TableRow key={row.regional_id} sx={{ '&:last-child td': { border: 0 } }}>
+                                <TableCell sx={{ fontWeight: 600 }}>{row.regional}</TableCell>
+                                <TableCell>
+                                  <Chip label={row.tipo_regional} size="small" variant="outlined"
+                                    sx={{ fontSize: '0.7rem' }} />
+                                </TableCell>
+                                <TableCell>
+                                  <Chip label={row.total} size="small" sx={{ bgcolor: `${ORO}22`, color: ORO, fontWeight: 700 }} />
+                                </TableCell>
+                                <TableCell>
+                                  <Chip label={row.finalizadas} size="small" sx={{ bgcolor: '#1b5e2044', color: '#4caf50', fontWeight: 700 }} />
+                                </TableCell>
+                                <TableCell>{row.aprobadas}</TableCell>
+                                <TableCell>{row.rechazadas}</TableCell>
+                              </TableRow>
+                            ))}
                           </TableBody>
                         </Table>
                       </TableContainer>

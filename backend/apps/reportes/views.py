@@ -282,6 +282,64 @@ class ReporteTipoRegionalView(APIView):
         })
 
 
+class ReporteRegionalView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from apps.solicitudes.models import Solicitud
+
+        fecha_desde   = request.query_params.get('fecha_desde')
+        fecha_hasta   = request.query_params.get('fecha_hasta')
+        tipo_regional = request.query_params.get('tipo_regional')
+        regional      = request.query_params.get('regional')
+        estado        = request.query_params.get('estado')
+        prioridad     = request.query_params.get('prioridad')
+
+        qs = Solicitud.objects.filter(regional__isnull=False)
+        if fecha_desde:
+            qs = qs.filter(created_at__date__gte=fecha_desde)
+        if fecha_hasta:
+            qs = qs.filter(created_at__date__lte=fecha_hasta)
+        if tipo_regional:
+            qs = qs.filter(regional__tipo_regional=tipo_regional)
+        if regional:
+            qs = qs.filter(regional=regional)
+        if estado:
+            qs = qs.filter(estado=estado)
+        if prioridad:
+            qs = qs.filter(prioridad=prioridad)
+
+        rows = list(
+            qs.values(
+                'regional__id',
+                'regional__nombre',
+                'regional__tipo_regional__nombre',
+            )
+            .annotate(
+                total=Count('id'),
+                finalizadas=Count('id', filter=Q(estado='FIN')),
+                aprobadas=Count('id',   filter=Q(estado='APRO')),
+                rechazadas=Count('id',  filter=Q(estado='RECH')),
+            )
+            .order_by('-total')
+        )
+
+        return Response({
+            'por_regional': [
+                {
+                    'regional_id':   r['regional__id'],
+                    'regional':      r['regional__nombre'],
+                    'tipo_regional': r['regional__tipo_regional__nombre'] or 'Sin tipo',
+                    'total':         r['total'],
+                    'finalizadas':   r['finalizadas'],
+                    'aprobadas':     r['aprobadas'],
+                    'rechazadas':    r['rechazadas'],
+                }
+                for r in rows
+            ]
+        })
+
+
 class ExportarExcelView(APIView):
     permission_classes = [IsAuthenticated]
 
