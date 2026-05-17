@@ -1,7 +1,5 @@
 import React from 'react'
-import {
-  Document, Page, View, Text, Image, StyleSheet,
-} from '@react-pdf/renderer'
+import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
 import dayjs from 'dayjs'
 
 const NAVY  = '#0F1932'
@@ -16,22 +14,25 @@ const S = StyleSheet.create({
     fontSize: 8,
     color: '#222',
     backgroundColor: '#ffffff',
-    paddingBottom: 0,
     paddingTop: 0,
+    paddingBottom: 0,
   },
+  // Encabezado institucional (flujo normal → se renderiza primero)
+  headerImg: { width: '100%' },
+  // Marca de agua transparente (absolute → renderiza encima pero casi invisible)
   watermark: {
     position: 'absolute',
-    top: '18%',
+    top: '14%',
     left: '5%',
     width: '90%',
-    opacity: 0.07,
+    opacity: 0.85,   // la transparencia ya está en la imagen PNG
   },
-  headerImg: { width: '100%' },
+  // Barra de título navy bajo el encabezado
   titleBar: {
     backgroundColor: NAVY,
     borderTopWidth: 3,
     borderTopColor: ORO,
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 28,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -40,126 +41,116 @@ const S = StyleSheet.create({
   titleMain: {
     color: ORO,
     fontFamily: 'Helvetica-Bold',
-    fontSize: 11,
-    letterSpacing: 0.6,
+    fontSize: 10,
+    letterSpacing: 0.5,
   },
-  titleSub: { color: '#9aa', fontSize: 7, marginTop: 2 },
-  numBox: { alignItems: 'flex-end' },
-  numLabel: { color: '#9aa', fontSize: 7, textTransform: 'uppercase' },
-  numValue: { color: ORO, fontFamily: 'Helvetica-Bold', fontSize: 12 },
-  content: { paddingHorizontal: 28, paddingTop: 8, paddingBottom: 120 },
+  titleSub:  { color: '#9aa', fontSize: 6.5, marginTop: 1 },
+  numBox:    { alignItems: 'flex-end' },
+  numLabel:  { color: '#9aa', fontSize: 6.5, textTransform: 'uppercase' },
+  numValue:  { color: ORO, fontFamily: 'Helvetica-Bold', fontSize: 11 },
+  // Contenido del formulario
+  content: {
+    paddingHorizontal: 28,
+    paddingTop: 6,
+    paddingBottom: 8,
+    flex: 1,
+  },
   sectionHdr: {
     backgroundColor: NAVY,
     paddingVertical: 4,
     paddingHorizontal: 8,
-    marginTop: 10,
-    marginBottom: 5,
+    marginTop: 9,
+    marginBottom: 4,
   },
   sectionTitle: {
     color: ORO,
     fontFamily: 'Helvetica-Bold',
-    fontSize: 7.5,
+    fontSize: 7,
     textTransform: 'uppercase',
-    letterSpacing: 0.7,
+    letterSpacing: 0.6,
   },
-  row: { flexDirection: 'row', gap: 6, marginBottom: 5 },
+  row:   { flexDirection: 'row', gap: 6, marginBottom: 4 },
   field: { flex: 1 },
   fieldLabel: {
-    fontSize: 6,
+    fontSize: 5.8,
     color: '#777',
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
-    marginBottom: 2,
+    marginBottom: 1.5,
   },
   fieldValue: {
-    fontSize: 8.5,
+    fontSize: 8,
     color: '#111',
     backgroundColor: '#f7f6f2',
     borderLeftWidth: 2,
     borderLeftColor: ORO,
     paddingVertical: 3,
     paddingHorizontal: 5,
-    minHeight: 15,
+    minHeight: 14,
   },
-  // Table
+  // Tablas
   tHead: { flexDirection: 'row', backgroundColor: NAVY },
   tHCell: {
     color: '#fff',
     fontFamily: 'Helvetica-Bold',
-    fontSize: 6.5,
-    padding: '4 5',
+    fontSize: 6,
+    padding: '3 5',
     textTransform: 'uppercase',
     letterSpacing: 0.2,
   },
-  tRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#e5e5e5',
-  },
+  tRow:    { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#e5e5e5' },
   tRowAlt: { backgroundColor: '#f9f8f5' },
-  tCell: { fontSize: 7.5, padding: '3 5', color: '#222' },
+  tCell:   { fontSize: 7, padding: '2.5 5', color: '#222' },
   tTotalRow: {
     flexDirection: 'row',
     backgroundColor: NAVY2,
     borderTopWidth: 1,
     borderTopColor: ORO,
   },
-  tTotalCell: {
-    color: ORO,
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 8,
-    padding: '4 5',
-  },
+  tTotalCell: { color: ORO, fontFamily: 'Helvetica-Bold', fontSize: 7.5, padding: '3.5 5' },
+  // Firmas
   sigArea: {
-    marginTop: 22,
+    marginTop: 18,
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: 10,
   },
-  sigBox: { width: '38%', alignItems: 'center' },
-  sigLine: {
-    borderTopWidth: 0.5,
-    borderTopColor: '#444',
-    width: '100%',
-    marginTop: 28,
-    marginBottom: 3,
-  },
+  sigBox:  { width: '38%', alignItems: 'center' },
+  sigLine: { borderTopWidth: 0.5, borderTopColor: '#444', width: '100%', marginTop: 26, marginBottom: 3 },
   sigLabel: {
-    fontSize: 6.5,
+    fontSize: 6,
     color: '#555',
     textAlign: 'center',
     fontFamily: 'Helvetica-Bold',
     textTransform: 'uppercase',
   },
   genDate: {
-    fontSize: 6,
+    fontSize: 5.8,
     color: '#bbb',
     textAlign: 'right',
-    marginTop: 6,
+    marginTop: 5,
     paddingRight: 2,
   },
-  stampWrap: {
-    position: 'absolute',
-    top: 110,
-    right: 28,
-    borderWidth: 2,
-    borderColor: '#cc0000',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    transform: 'rotate(-15deg)',
-    opacity: 0.45,
-  },
-  stampText: {
-    color: '#cc0000',
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 18,
-  },
+  // Pie de página institucional (absolute → ancla al fondo de la página)
   footerImg: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     width: '100%',
   },
+  // Sello BORRADOR
+  stampWrap: {
+    position: 'absolute',
+    top: 100,
+    right: 26,
+    borderWidth: 2,
+    borderColor: '#cc0000',
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    transform: 'rotate(-12deg)',
+    opacity: 0.5,
+  },
+  stampText: { color: '#cc0000', fontFamily: 'Helvetica-Bold', fontSize: 16 },
 })
 
 function Field({ label, value, flex = 1 }) {
@@ -191,19 +182,18 @@ export default function SolicitudPDF({
 }) {
   const BASE = typeof window !== 'undefined' ? window.location.origin : ''
 
-  const fpcValidos = (fpcRows || []).filter((r) => r.periodo)
+  const fpcValidos  = (fpcRows || []).filter((r) => r.periodo)
   const getPlanilla = (id) => (tiposPlanilla || []).find((t) => t.id === Number(id))?.nombre || '—'
   const getDoc      = (id) => (catalogosDocs  || []).find((d) => d.id === Number(id))
   const getCausal   = (id) => (tiposCausal    || []).find((t) => t.id === Number(id))?.nombre
   const getRegional = (id) => (regionales     || []).find((r) => r.id === Number(id))?.nombre
 
-  const asegurado = values?.asegurado_data || {}
-  const empleador = values?.empleador_data || {}
-  const nombreAseg = [asegurado.nombre, asegurado.ap_paterno, asegurado.ap_materno]
-    .filter(Boolean).join(' ')
+  const asegurado  = values?.asegurado_data || {}
+  const empleador  = values?.empleador_data || {}
+  const nombreAseg = [asegurado.nombre, asegurado.ap_paterno, asegurado.ap_materno].filter(Boolean).join(' ')
 
-  const causalNombre   = getCausal(values?.tipo_causal) || values?.tipo_causal_nombre || '—'
-  const regionalNombre = getRegional(values?.regional)  || values?.regional_nombre    || '—'
+  const causalNombre   = getCausal(values?.tipo_causal)   || values?.tipo_causal_nombre   || '—'
+  const regionalNombre = getRegional(values?.regional)    || values?.regional_nombre       || '—'
 
   const totalGanado = fpcValidos.reduce((s, r) => s + (Number(r.total_ganado) || 0), 0)
   const fmt = (n) => Number(n).toLocaleString('es-BO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -212,13 +202,10 @@ export default function SolicitudPDF({
     <Document>
       <Page size="A4" style={S.page}>
 
-        {/* Marca de agua */}
-        <Image src={`${BASE}/pdf_watermark.png`} style={S.watermark} />
-
-        {/* Encabezado oficial */}
+        {/* 1 · Encabezado institucional (flujo normal) */}
         <Image src={`${BASE}/pdf_header.png`} style={S.headerImg} />
 
-        {/* Barra título */}
+        {/* 2 · Barra título (flujo normal, encima del encabezado) */}
         <View style={S.titleBar}>
           <View>
             <Text style={S.titleMain}>FORMULARIO DE SOLICITUD DE RECTIFICACIÓN</Text>
@@ -230,17 +217,9 @@ export default function SolicitudPDF({
           </View>
         </View>
 
-        {/* Sello BORRADOR */}
-        {!numero && (
-          <View style={S.stampWrap}>
-            <Text style={S.stampText}>BORRADOR</Text>
-          </View>
-        )}
-
-        {/* Cuerpo */}
+        {/* 3 · Contenido del formulario (flujo normal) */}
         <View style={S.content}>
 
-          {/* I. Datos de la Solicitud */}
           <SectionHdr title="I.  Datos de la Solicitud" />
           <View style={S.row}>
             <Field label="Fecha de Recepción"
@@ -249,15 +228,13 @@ export default function SolicitudPDF({
               value={values?.fecha_limite ? dayjs(values.fecha_limite).format('DD/MM/YYYY') : '—'} />
             <Field label="Prioridad"
               value={PRIORIDAD_LABEL[values?.prioridad] || values?.prioridad || 'Normal'} />
-            <Field label="Tipo de Solicitud"
-              value={values?.tipo_solicitud || '—'} />
+            <Field label="Tipo de Solicitud" value={values?.tipo_solicitud || '—'} />
           </View>
           <View style={S.row}>
             <Field label="Regional / Área Solicitante" value={regionalNombre} flex={2} />
             <Field label="Administradora" value="GESTORA PÚBLICA" flex={1} />
           </View>
 
-          {/* II. Causal */}
           <SectionHdr title="II.  Causal de Rectificación (Desacreditación)" />
           <View style={S.row}>
             <Field label="Tipo de Causal" value={causalNombre} flex={2} />
@@ -268,7 +245,6 @@ export default function SolicitudPDF({
             </View>
           )}
 
-          {/* III. Asegurado */}
           <SectionHdr title="III.  Datos del Asegurado" />
           <View style={S.row}>
             <Field label="Nombre Completo" value={nombreAseg || '—'} flex={3} />
@@ -276,14 +252,12 @@ export default function SolicitudPDF({
             <Field label="CUA" value={asegurado.cua || '—'} />
           </View>
 
-          {/* IV. Empleador */}
           <SectionHdr title="IV.  Datos del Empleador" />
           <View style={S.row}>
             <Field label="Nombre / Razón Social" value={empleador.nombre_razon_social || '—'} flex={3} />
             <Field label="N° Documento" value={empleador.numero_documento_identidad || '—'} />
           </View>
 
-          {/* V. Documentos */}
           {docsChecked && docsChecked.length > 0 && (
             <>
               <SectionHdr title="V.  Documentos Adjuntos" />
@@ -291,7 +265,7 @@ export default function SolicitudPDF({
                 <View style={S.tHead}>
                   <Text style={[S.tHCell, { width: '7%'  }]}>#</Text>
                   <Text style={[S.tHCell, { width: '18%' }]}>Código</Text>
-                  <Text style={[S.tHCell, { width: '53%' }]}>Descripción del Documento</Text>
+                  <Text style={[S.tHCell, { width: '53%' }]}>Descripción</Text>
                   <Text style={[S.tHCell, { width: '22%' }]}>Estado / Archivo</Text>
                 </View>
                 {docsChecked.map(([docId, sel], idx) => {
@@ -299,11 +273,11 @@ export default function SolicitudPDF({
                   return (
                     <View key={docId} style={[S.tRow, idx % 2 === 1 ? S.tRowAlt : {}]}>
                       <Text style={[S.tCell, { width: '7%',  color: '#999' }]}>{idx + 1}</Text>
-                      <Text style={[S.tCell, { width: '18%', fontFamily: 'Helvetica-Bold', fontSize: 7 }]}>
+                      <Text style={[S.tCell, { width: '18%', fontFamily: 'Helvetica-Bold', fontSize: 6.5 }]}>
                         {doc?.codigo || `DOC-${docId}`}
                       </Text>
                       <Text style={[S.tCell, { width: '53%' }]}>{doc?.descripcion || doc?.nombre || '—'}</Text>
-                      <Text style={[S.tCell, { width: '22%', color: '#555', fontSize: 6.5 }]}>
+                      <Text style={[S.tCell, { width: '22%', color: '#555', fontSize: 6 }]}>
                         {sel.file?.name || '✓ Recibido'}
                       </Text>
                     </View>
@@ -313,10 +287,9 @@ export default function SolicitudPDF({
             </>
           )}
 
-          {/* VI. Formularios FPC */}
           <SectionHdr title="VI.  Formularios FPC — Detalle de Rectificación" />
           {fpcValidos.length === 0 ? (
-            <Text style={{ fontSize: 7.5, color: '#888', paddingLeft: 8, paddingTop: 4, fontStyle: 'italic' }}>
+            <Text style={{ fontSize: 7, color: '#888', paddingLeft: 8, paddingTop: 3, fontStyle: 'italic' }}>
               Sin formularios FPC registrados.
             </Text>
           ) : (
@@ -331,7 +304,7 @@ export default function SolicitudPDF({
               {fpcValidos.map((row, idx) => (
                 <View key={idx} style={[S.tRow, idx % 2 === 1 ? S.tRowAlt : {}]}>
                   <Text style={[S.tCell, { width: '7%',  color: '#999' }]}>{idx + 1}</Text>
-                  <Text style={[S.tCell, { width: '24%', fontFamily: 'Helvetica-Bold', fontSize: 7 }]}>
+                  <Text style={[S.tCell, { width: '24%', fontFamily: 'Helvetica-Bold', fontSize: 6.5 }]}>
                     {row.numero || '—'}
                   </Text>
                   <Text style={[S.tCell, { width: '24%' }]}>{row.periodo || '—'}</Text>
@@ -348,7 +321,6 @@ export default function SolicitudPDF({
             </View>
           )}
 
-          {/* Firmas */}
           <View style={S.sigArea}>
             <View style={S.sigBox}>
               <View style={S.sigLine} />
@@ -360,13 +332,21 @@ export default function SolicitudPDF({
             </View>
           </View>
 
-          <Text style={S.genDate}>
-            Documento generado: {dayjs().format('DD/MM/YYYY HH:mm')}
-          </Text>
+          <Text style={S.genDate}>Documento generado: {dayjs().format('DD/MM/YYYY HH:mm')}</Text>
 
         </View>
 
-        {/* Pie de página oficial */}
+        {/* 4 · Marca de agua (absolute → encima del contenido, pero casi invisible) */}
+        <Image src={`${BASE}/pdf_watermark.png`} style={S.watermark} />
+
+        {/* 5 · Sello BORRADOR (absolute) */}
+        {!numero && (
+          <View style={S.stampWrap}>
+            <Text style={S.stampText}>BORRADOR</Text>
+          </View>
+        )}
+
+        {/* 6 · Pie de página institucional (absolute, fondo de página) */}
         <Image src={`${BASE}/pdf_footer.png`} style={S.footerImg} />
 
       </Page>
