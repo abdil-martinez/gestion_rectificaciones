@@ -3,20 +3,44 @@ import {
   Box, Card, CardContent, Typography, Grid, Button,
   Tab, Tabs, Stack, TextField, Table, TableHead,
   TableRow, TableCell, TableBody, TableContainer, Chip, LinearProgress,
+  FormControl, InputLabel, Select, MenuItem, Collapse,
 } from '@mui/material'
 import DownloadIcon from '@mui/icons-material/Download'
 import BarChartIcon from '@mui/icons-material/BarChart'
+import FilterListIcon from '@mui/icons-material/FilterList'
+import FilterListOffIcon from '@mui/icons-material/FilterListOff'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, Legend,
 } from 'recharts'
 import { useQuery } from '@tanstack/react-query'
 import { getProductividad, getCausales, getTipoRegional, exportarExcel } from '../../api/reportes'
+import catalogosApi from '../../api/catalogos'
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import { ORO, NAVY, NAVY2 } from '../../theme'
 import toast from 'react-hot-toast'
 
 const PIE_COLORS = ['#CBab58', '#2196f3', '#4caf50', '#f44336', '#9c27b0', '#ff9800']
+
+const ESTADOS = [
+  { value: 'BOR',  label: 'Borrador' },
+  { value: 'PEND', label: 'Pendiente' },
+  { value: 'ASIG', label: 'Asignado' },
+  { value: 'REV',  label: 'En Revisión' },
+  { value: 'APRO', label: 'Aprobado' },
+  { value: 'RECH', label: 'Rechazado' },
+  { value: 'DEV',  label: 'Devuelto' },
+  { value: 'FIN',  label: 'Finalizado' },
+  { value: 'ANU',  label: 'Anulado' },
+]
+const PRIORIDADES = [
+  { value: 'BAJA',    label: 'Baja' },
+  { value: 'MEDIA',   label: 'Media' },
+  { value: 'ALTA',    label: 'Alta' },
+  { value: 'URGENTE', label: 'Urgente' },
+]
+
+const PROD_EMPTY = { tipo_regional: '', regional: '', estado: '', prioridad: '' }
 
 function AnalystDetail({ row }) {
   const enProceso = Math.max(0, row.total - row.finalizadas - row.aprobadas - row.rechazadas)
@@ -100,17 +124,44 @@ export default function ReportesPage() {
   const [tab, setTab]           = useState(0)
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
-  const [downloading, setDownloading] = useState(false)
-  const [analystTab, setAnalystTab]   = useState(0)
+  const [downloading, setDownloading]     = useState(false)
+  const [analystTab, setAnalystTab]       = useState(0)
+  const [prodFilters, setProdFilters]     = useState(PROD_EMPTY)
+  const [prodApplied, setProdApplied]     = useState(PROD_EMPTY)
+  const [showProdFilters, setShowProdFilters] = useState(false)
+
+  const setPF = (k, v) => setProdFilters((f) => ({ ...f, [k]: v }))
+  const applyProd  = () => { setProdApplied({ ...prodFilters }); setAnalystTab(0) }
+  const clearProd  = () => { setProdFilters(PROD_EMPTY); setProdApplied(PROD_EMPTY); setAnalystTab(0) }
+  const hasProdActive = Object.values(prodApplied).some(Boolean)
 
   const params = {
     ...(fechaDesde && { fecha_desde: fechaDesde }),
     ...(fechaHasta && { fecha_hasta: fechaHasta }),
   }
 
+  const prodParams = {
+    ...params,
+    ...(prodApplied.tipo_regional && { tipo_regional: prodApplied.tipo_regional }),
+    ...(prodApplied.regional      && { regional:      prodApplied.regional      }),
+    ...(prodApplied.estado        && { estado:        prodApplied.estado        }),
+    ...(prodApplied.prioridad     && { prioridad:     prodApplied.prioridad     }),
+  }
+
+  const { data: tiposRegional = [] } = useQuery({
+    queryKey: ['tipo-regional'],
+    queryFn:  () => catalogosApi.tipoRegional.getAll().then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+  })
+  const { data: regionales = [] } = useQuery({
+    queryKey: ['regionales-all'],
+    queryFn:  () => catalogosApi.regionales.getAll({ page_size: 200 }).then((r) => r.data.results || r.data),
+    staleTime: 5 * 60_000,
+  })
+
   const { data: prodData, isLoading: loadProd } = useQuery({
-    queryKey: ['reporte-productividad', params],
-    queryFn:  () => getProductividad(params).then((r) => r.data),
+    queryKey: ['reporte-productividad', prodParams],
+    queryFn:  () => getProductividad(prodParams).then((r) => r.data),
   })
 
   const { data: causalData, isLoading: loadCausal } = useQuery({
@@ -206,17 +257,123 @@ export default function ReportesPage() {
               <>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <SectionHeader title="Productividad por Analista" />
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<DownloadIcon />}
-                    onClick={() => handleExportar('productividad')}
-                    disabled={downloading}
-                    sx={{ borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}11` } }}
-                  >
-                    Exportar Excel
-                  </Button>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="small"
+                      variant={showProdFilters ? 'contained' : 'outlined'}
+                      startIcon={showProdFilters ? <FilterListOffIcon /> : <FilterListIcon />}
+                      onClick={() => setShowProdFilters((v) => !v)}
+                      sx={showProdFilters
+                        ? { bgcolor: ORO, color: '#0F1932', fontWeight: 700, '&:hover': { bgcolor: '#b8943e' } }
+                        : { borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}11` } }}
+                    >
+                      Filtros {hasProdActive && `(${Object.values(prodApplied).filter(Boolean).length})`}
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => handleExportar('productividad')}
+                      disabled={downloading}
+                      sx={{ borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}11` } }}
+                    >
+                      Exportar
+                    </Button>
+                  </Stack>
                 </Box>
+
+                {/* Panel de filtros */}
+                <Collapse in={showProdFilters}>
+                  <Box sx={{ border: '1px solid #2A3D6B', borderRadius: 1, p: 2, mb: 2 }}>
+                    <Grid container spacing={1.5} alignItems="flex-end">
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormControl size="small" fullWidth>
+                          <InputLabel>Tipo de Regional</InputLabel>
+                          <Select value={prodFilters.tipo_regional} label="Tipo de Regional"
+                            onChange={(e) => { setPF('tipo_regional', e.target.value); setPF('regional', '') }}>
+                            <MenuItem value="">Todos</MenuItem>
+                            {tiposRegional.map((t) => (
+                              <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormControl size="small" fullWidth>
+                          <InputLabel>Regional</InputLabel>
+                          <Select value={prodFilters.regional} label="Regional"
+                            onChange={(e) => setPF('regional', e.target.value)}>
+                            <MenuItem value="">Todas</MenuItem>
+                            {regionales
+                              .filter((r) => !prodFilters.tipo_regional || r.tipo_regional === Number(prodFilters.tipo_regional))
+                              .map((r) => (
+                                <MenuItem key={r.id} value={r.id}>{r.nombre}</MenuItem>
+                              ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormControl size="small" fullWidth>
+                          <InputLabel>Estado</InputLabel>
+                          <Select value={prodFilters.estado} label="Estado"
+                            onChange={(e) => setPF('estado', e.target.value)}>
+                            <MenuItem value="">Todos</MenuItem>
+                            {ESTADOS.map((e) => (
+                              <MenuItem key={e.value} value={e.value}>{e.label}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <FormControl size="small" fullWidth>
+                          <InputLabel>Prioridad</InputLabel>
+                          <Select value={prodFilters.prioridad} label="Prioridad"
+                            onChange={(e) => setPF('prioridad', e.target.value)}>
+                            <MenuItem value="">Todas</MenuItem>
+                            {PRIORIDADES.map((p) => (
+                              <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Button size="small" variant="outlined" color="inherit" onClick={clearProd}>Limpiar</Button>
+                          <Button size="small" variant="contained"
+                            onClick={applyProd}
+                            sx={{ bgcolor: ORO, color: '#0F1932', fontWeight: 700, '&:hover': { bgcolor: '#b8943e' } }}>
+                            Aplicar
+                          </Button>
+                        </Stack>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                  {/* Chips de filtros activos */}
+                  {hasProdActive && (
+                    <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ mb: 1.5, gap: 0.5 }}>
+                      {prodApplied.tipo_regional && (
+                        <Chip size="small"
+                          label={`Tipo Regional: ${tiposRegional.find((t) => t.id === Number(prodApplied.tipo_regional))?.nombre || prodApplied.tipo_regional}`}
+                          onDelete={() => { setPF('tipo_regional', ''); setPF('regional', ''); setProdApplied((a) => ({ ...a, tipo_regional: '', regional: '' })) }} />
+                      )}
+                      {prodApplied.regional && (
+                        <Chip size="small"
+                          label={`Regional: ${regionales.find((r) => r.id === Number(prodApplied.regional))?.nombre || prodApplied.regional}`}
+                          onDelete={() => { setPF('regional', ''); setProdApplied((a) => ({ ...a, regional: '' })) }} />
+                      )}
+                      {prodApplied.estado && (
+                        <Chip size="small"
+                          label={`Estado: ${ESTADOS.find((e) => e.value === prodApplied.estado)?.label || prodApplied.estado}`}
+                          onDelete={() => { setPF('estado', ''); setProdApplied((a) => ({ ...a, estado: '' })) }} />
+                      )}
+                      {prodApplied.prioridad && (
+                        <Chip size="small"
+                          label={`Prioridad: ${PRIORIDADES.find((p) => p.value === prodApplied.prioridad)?.label || prodApplied.prioridad}`}
+                          onDelete={() => { setPF('prioridad', ''); setProdApplied((a) => ({ ...a, prioridad: '' })) }} />
+                      )}
+                    </Stack>
+                  )}
+                </Collapse>
 
                 {!productividad.length ? (
                   <Typography color="text.secondary" variant="body2">Sin datos para el período seleccionado.</Typography>
