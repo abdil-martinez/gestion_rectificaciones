@@ -43,31 +43,32 @@ export default function UsersPage() {
     queryFn:  () => getUsers({ search: search || undefined }).then((r) => r.data),
   })
 
-  const { data: regionales } = useQuery({
-    queryKey: ['regionales'],
-    queryFn:  () => catalogosApi.regionales.getAll().then((r) => r.data.results || r.data),
+  const { data: tiposRegional } = useQuery({
+    queryKey: ['tipo-regional'],
+    queryFn:  () => catalogosApi.tipoRegional.getAll().then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
   })
 
   const { control, handleSubmit, reset, formState: { errors } } = useForm({
-    defaultValues: { username: '', email: '', first_name: '', last_name: '', rol: 'ANALIST', regional: '', password: '', password2: '' },
+    defaultValues: { username: '', email: '', first_name: '', last_name: '', rol: 'ANALIST', tipo_regional: '', password: '', password2: '' },
   })
 
   const openCreate = () => {
     setEditUser(null)
-    reset({ username: '', email: '', first_name: '', last_name: '', rol: 'ANALIST', regional: '', password: '', password2: '' })
+    reset({ username: '', email: '', first_name: '', last_name: '', rol: 'ANALIST', tipo_regional: '', password: '', password2: '' })
     setDialogOpen(true)
   }
 
   const openEdit = (user) => {
     setEditUser(user)
-    reset({ username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name, rol: user.rol, regional: user.regional || '' })
+    reset({ username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name, rol: user.rol, tipo_regional: user.tipo_regional || '' })
     setDialogOpen(true)
   }
 
   const onSubmit = async (data) => {
     try {
       if (editUser) {
-        await updateUser(editUser.id, { email: data.email, first_name: data.first_name, last_name: data.last_name, rol: data.rol, regional: data.regional || null })
+        await updateUser(editUser.id, { email: data.email, first_name: data.first_name, last_name: data.last_name, rol: data.rol, tipo_regional: data.tipo_regional || null })
         toast.success('Usuario actualizado')
       } else {
         await createUser(data)
@@ -137,7 +138,7 @@ export default function UsersPage() {
                   <TableCell>Nombre completo</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Rol</TableCell>
-                  <TableCell>Regional</TableCell>
+                  <TableCell>Tipo Regional</TableCell>
                   <TableCell>Estado</TableCell>
                   <TableCell align="center">Acciones</TableCell>
                 </TableRow>
@@ -182,7 +183,7 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
-                          {user.regional_nombre || '—'}
+                          {user.tipo_regional_nombre || '—'}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -282,15 +283,15 @@ export default function UsersPage() {
             </Grid>
             <Grid item xs={12} sm={6}>
               <Controller
-                name="regional"
+                name="tipo_regional"
                 control={control}
                 render={({ field }) => (
                   <FormControl fullWidth>
-                    <InputLabel>Regional</InputLabel>
-                    <Select {...field} label="Regional">
-                      <MenuItem value="">Ninguna</MenuItem>
-                      {regionales?.map((r) => (
-                        <MenuItem key={r.id} value={r.id}>{r.nombre}</MenuItem>
+                    <InputLabel>Tipo de Regional</InputLabel>
+                    <Select {...field} label="Tipo de Regional">
+                      <MenuItem value="">Ninguno</MenuItem>
+                      {tiposRegional?.map((t) => (
+                        <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>

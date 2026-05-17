@@ -17,6 +17,12 @@ class CustomUser(AbstractUser):
         null=True, blank=True,
         related_name='usuarios'
     )
+    tipo_regional = models.ForeignKey(
+        'catalogos.TipoRegional',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='usuarios'
+    )
     unidad = models.ForeignKey(
         'catalogos.Unidad',
         on_delete=models.SET_NULL,

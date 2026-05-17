@@ -4,16 +4,19 @@ from .models import CustomUser
 
 
 class UserSerializer(serializers.ModelSerializer):
-    regional_nombre = serializers.CharField(source='regional.nombre', read_only=True)
-    unidad_nombre   = serializers.CharField(source='unidad.nombre', read_only=True)
-    agencia_nombre  = serializers.CharField(source='agencia.nombre', read_only=True)
-    nombre_completo = serializers.SerializerMethodField()
+    regional_nombre      = serializers.CharField(source='regional.nombre', read_only=True)
+    tipo_regional_nombre = serializers.CharField(source='tipo_regional.nombre', read_only=True)
+    unidad_nombre        = serializers.CharField(source='unidad.nombre', read_only=True)
+    agencia_nombre       = serializers.CharField(source='agencia.nombre', read_only=True)
+    nombre_completo      = serializers.SerializerMethodField()
 
     class Meta:
         model  = CustomUser
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'rol', 'regional', 'regional_id', 'regional_nombre',
+            'rol',
+            'regional', 'regional_id', 'regional_nombre',
+            'tipo_regional', 'tipo_regional_id', 'tipo_regional_nombre',
             'unidad', 'unidad_id', 'unidad_nombre',
             'agencia', 'agencia_id', 'agencia_nombre',
             'telefono', 'avatar', 'is_active', 'date_joined',
@@ -33,7 +36,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         model  = CustomUser
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'rol', 'regional', 'unidad', 'agencia', 'telefono', 'password', 'password2',
+            'rol', 'regional', 'tipo_regional', 'unidad', 'agencia', 'telefono', 'password', 'password2',
         ]
 
     def validate_email(self, value):
@@ -60,7 +63,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         model  = CustomUser
         fields = [
             'email', 'first_name', 'last_name',
-            'rol', 'regional', 'unidad', 'agencia', 'telefono', 'avatar',
+            'rol', 'regional', 'tipo_regional', 'unidad', 'agencia', 'telefono', 'avatar',
         ]
 
 
