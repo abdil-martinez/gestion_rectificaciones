@@ -46,6 +46,7 @@ export default function SolicitudList() {
   const [rowsPerPage]               = useState(20)
   const [search, setSearch]         = useState('')
   const [estado, setEstado]         = useState('')
+  const [prioridad, setPrioridad]   = useState('')
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
   const [tipoRegional, setTipoRegional] = useState('')
@@ -63,6 +64,7 @@ export default function SolicitudList() {
     page:                    page + 1,
     search:                  search       || undefined,
     estado:                  estado       || undefined,
+    prioridad:               prioridad    || undefined,
     regional:                regional     || undefined,
     regional__tipo_regional: tipoRegional || undefined,
     fecha_desde:             fechaDesde   || undefined,
@@ -178,13 +180,13 @@ export default function SolicitudList() {
       {/* Filtros */}
       <Card sx={{ mb: 2.5 }}>
         <CardContent sx={{ py: 2 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={4}>
-              <TextField fullWidth placeholder="Buscar por N°, asegurado, CI, CUA..."
+          <Grid container spacing={1.5} alignItems="center">
+            <Grid item xs={12} sm={4} md={3}>
+              <TextField fullWidth size="small" placeholder="Buscar por N°, asegurado, CI, CUA..."
                 value={search} onChange={(e) => { setSearch(e.target.value); setPage(0) }}
                 InputProps={{ startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary', fontSize: 20 }} /> }} />
             </Grid>
-            <Grid item xs={12} sm={2}>
+            <Grid item xs={6} sm={2} md={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Estado</InputLabel>
                 <Select value={estado} label="Estado" onChange={(e) => { setEstado(e.target.value); setPage(0) }}>
@@ -193,7 +195,19 @@ export default function SolicitudList() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={2}>
+            <Grid item xs={6} sm={2} md={1}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Prioridad</InputLabel>
+                <Select value={prioridad} label="Prioridad" onChange={(e) => { setPrioridad(e.target.value); setPage(0) }}>
+                  <MenuItem value="">Todas</MenuItem>
+                  <MenuItem value="BAJA">Baja</MenuItem>
+                  <MenuItem value="NORMAL">Normal</MenuItem>
+                  <MenuItem value="ALTA">Alta</MenuItem>
+                  <MenuItem value="URGENTE">Urgente</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6} sm={2} md={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Tipo Regional</InputLabel>
                 <Select value={tipoRegional} label="Tipo Regional" onChange={(e) => { setTipoRegional(e.target.value); setRegional(''); setPage(0) }}>
@@ -202,7 +216,7 @@ export default function SolicitudList() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} sm={2}>
+            <Grid item xs={6} sm={2} md={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Regional</InputLabel>
                 <Select value={regional} label="Regional" onChange={(e) => { setRegional(e.target.value); setPage(0) }}>
@@ -211,21 +225,33 @@ export default function SolicitudList() {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={6} sm={2}>
-              <TextField fullWidth label="Desde" type="date" InputLabelProps={{ shrink: true }}
+            <Grid item xs={6} sm={2} md={1}>
+              <TextField fullWidth size="small" label="Desde" type="date" InputLabelProps={{ shrink: true }}
                 value={fechaDesde} onChange={(e) => { setFechaDesde(e.target.value); setPage(0) }} />
             </Grid>
-            <Grid item xs={6} sm={1}>
-              <TextField fullWidth label="Hasta" type="date" InputLabelProps={{ shrink: true }}
+            <Grid item xs={6} sm={2} md={1}>
+              <TextField fullWidth size="small" label="Hasta" type="date" InputLabelProps={{ shrink: true }}
                 value={fechaHasta} onChange={(e) => { setFechaHasta(e.target.value); setPage(0) }} />
             </Grid>
-            <Grid item xs={12} sm={1}>
+            <Grid item xs={12} sm={2} md={1}>
               <Button fullWidth variant="outlined" size="small"
-                onClick={() => { setSearch(''); setEstado(''); setTipoRegional(''); setRegional(''); setFechaDesde(''); setFechaHasta(''); setPage(0); setSelected([]) }}>
+                onClick={() => { setSearch(''); setEstado(''); setPrioridad(''); setTipoRegional(''); setRegional(''); setFechaDesde(''); setFechaHasta(''); setPage(0); setSelected([]) }}>
                 Limpiar
               </Button>
             </Grid>
           </Grid>
+          {/* Chips de filtros activos */}
+          {(search || estado || prioridad || tipoRegional || regional || fechaDesde || fechaHasta) && (
+            <Box sx={{ mt: 1.5, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+              {search       && <Chip size="small" label={`Búsqueda: "${search}"`}     onDelete={() => { setSearch('');       setPage(0) }} />}
+              {estado       && <Chip size="small" label={`Estado: ${ESTADOS.find((e) => e.value === estado)?.label || estado}`} onDelete={() => { setEstado('');       setPage(0) }} />}
+              {prioridad    && <Chip size="small" label={`Prioridad: ${prioridad}`}   onDelete={() => { setPrioridad('');    setPage(0) }} />}
+              {tipoRegional && <Chip size="small" label={`Tipo Regional: ${tiposRegionalData.find((t) => t.id === Number(tipoRegional))?.nombre || tipoRegional}`} onDelete={() => { setTipoRegional(''); setRegional(''); setPage(0) }} />}
+              {regional     && <Chip size="small" label={`Regional: ${regionalesData.find((r) => r.id === Number(regional))?.nombre || regional}`} onDelete={() => { setRegional('');     setPage(0) }} />}
+              {fechaDesde   && <Chip size="small" label={`Desde: ${fechaDesde}`}      onDelete={() => { setFechaDesde('');   setPage(0) }} />}
+              {fechaHasta   && <Chip size="small" label={`Hasta: ${fechaHasta}`}      onDelete={() => { setFechaHasta('');   setPage(0) }} />}
+            </Box>
+          )}
         </CardContent>
       </Card>
 
@@ -268,6 +294,7 @@ export default function SolicitudList() {
                     <TableCell>CI</TableCell>
                     <TableCell>CUA</TableCell>
                     <TableCell>Tipo Causal</TableCell>
+                    <TableCell>Tipo Regional</TableCell>
                     <TableCell>Regional</TableCell>
                     <TableCell>Estado</TableCell>
                     <TableCell>Prioridad</TableCell>
@@ -279,7 +306,7 @@ export default function SolicitudList() {
                 <TableBody>
                   {rows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={canBulkAssign ? 12 : 11} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      <TableCell colSpan={canBulkAssign ? 13 : 12} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                         No se encontraron solicitudes con los filtros aplicados.
                       </TableCell>
                     </TableRow>
@@ -312,6 +339,9 @@ export default function SolicitudList() {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">{sol.tipo_causal_nombre || '—'}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.78rem' }}>{sol.tipo_regional_nombre || '—'}</Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">{sol.regional_nombre || '—'}</Typography>
