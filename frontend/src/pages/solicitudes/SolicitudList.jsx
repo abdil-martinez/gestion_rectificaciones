@@ -6,13 +6,15 @@ import {
   TableRow, TablePagination, Typography, IconButton, Tooltip,
   MenuItem, Select, FormControl, InputLabel, Grid, Stack,
   Checkbox, Dialog, DialogTitle, DialogContent, DialogActions,
-  Alert, CircularProgress,
+  Alert, CircularProgress, Tabs, Tab, Badge,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import DownloadIcon from '@mui/icons-material/Download'
 import SearchIcon from '@mui/icons-material/Search'
 import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn'
+import InboxIcon from '@mui/icons-material/Inbox'
+import ListAltIcon from '@mui/icons-material/ListAlt'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { getSolicitudes, exportarExcel, cambiarEstado } from '../../api/solicitudes'
@@ -36,11 +38,16 @@ const ESTADOS = [
   { value: 'ANU',  label: 'Anulado' },
 ]
 
+const showBandejaTab = (rol) => ['ADMIN', 'SUPER', 'ANALIST'].includes(rol)
+
 export default function SolicitudList() {
   const navigate       = useNavigate()
   const qc             = useQueryClient()
   const { user }       = useAuthStore()
   const canBulkAssign  = ['ADMIN', 'SUPER'].includes(user?.rol)
+
+  // Pestaña activa: 0 = todas, 1 = mi bandeja
+  const [activeTab, setActiveTab] = useState(user?.rol === 'ANALIST' ? 1 : 0)
 
   const [page, setPage]             = useState(0)
   const [rowsPerPage]               = useState(20)
@@ -60,6 +67,8 @@ export default function SolicitudList() {
   const [comentario, setComentario] = useState('')
   const [assigning, setAssigning]   = useState(false)
 
+  const isBandeja = activeTab === 1
+
   const params = {
     page:                    page + 1,
     search:                  search       || undefined,
@@ -69,11 +78,20 @@ export default function SolicitudList() {
     regional__tipo_regional: tipoRegional || undefined,
     fecha_desde:             fechaDesde   || undefined,
     fecha_hasta:             fechaHasta   || undefined,
+    ...(isBandeja ? { mi_bandeja: 'true' } : {}),
   }
 
   const { data, isLoading } = useQuery({
     queryKey: ['solicitudes', params],
     queryFn:  () => getSolicitudes(params).then((r) => r.data),
+  })
+
+  // Conteo de mi bandeja para el badge
+  const { data: bandejaData } = useQuery({
+    queryKey: ['solicitudes-bandeja-count'],
+    queryFn:  () => getSolicitudes({ mi_bandeja: 'true', page: 1 }).then((r) => r.data),
+    enabled:  showBandejaTab(user?.rol),
+    refetchInterval: 60_000,
   })
 
   const { data: usuariosData } = useQuery({
@@ -176,6 +194,39 @@ export default function SolicitudList() {
           )}
         </Stack>
       </Box>
+
+      {/* Pestañas */}
+      {showBandejaTab(user?.rol) && (
+        <Box sx={{ borderBottom: 1, borderColor: '#2A3D6B', mb: 2.5 }}>
+          <Tabs
+            value={activeTab}
+            onChange={(_, v) => { setActiveTab(v); setPage(0); setSelected([]) }}
+            sx={{ '& .Mui-selected': { color: `${ORO} !important` }, '& .MuiTabs-indicator': { backgroundColor: ORO } }}
+          >
+            <Tab
+              icon={<ListAltIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={user?.rol === 'ANALIST' ? 'Asignadas a mí' : 'Todas las solicitudes'}
+              sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+            />
+            <Tab
+              icon={<InboxIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={
+                <Badge
+                  badgeContent={bandejaData?.count || 0}
+                  color="warning"
+                  max={99}
+                  sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', minWidth: 18, height: 18 } }}
+                >
+                  <Box sx={{ pr: bandejaData?.count ? 1.5 : 0 }}>Mi Bandeja</Box>
+                </Badge>
+              }
+              sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+            />
+          </Tabs>
+        </Box>
+      )}
 
       {/* Filtros */}
       <Card sx={{ mb: 2.5 }}>
@@ -307,7 +358,9 @@ export default function SolicitudList() {
                   {rows.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={canBulkAssign ? 13 : 12} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                        No se encontraron solicitudes con los filtros aplicados.
+                        {isBandeja
+                          ? 'No tiene solicitudes pendientes en su bandeja.'
+                          : 'No se encontraron solicitudes con los filtros aplicados.'}
                       </TableCell>
                     </TableRow>
                   )}

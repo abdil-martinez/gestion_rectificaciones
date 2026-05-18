@@ -34,21 +34,28 @@ class SolicitudViewSet(viewsets.ModelViewSet):
     ordering           = ['-created_at']
 
     def get_queryset(self):
+        from django.db.models import Q
         qs = Solicitud.objects.select_related(
             'asegurado', 'empleador', 'solicitante',
             'tipo_solicitud', 'tipo_causal', 'regional',
             'analista_asignado', 'area_solicitante',
         )
         user = self.request.user
-        fecha_desde = self.request.query_params.get('fecha_desde')
-        fecha_hasta = self.request.query_params.get('fecha_hasta')
+        fecha_desde  = self.request.query_params.get('fecha_desde')
+        fecha_hasta  = self.request.query_params.get('fecha_hasta')
+        mi_bandeja   = self.request.query_params.get('mi_bandeja') == 'true'
 
         if fecha_desde:
             qs = qs.filter(created_at__date__gte=fecha_desde)
         if fecha_hasta:
             qs = qs.filter(created_at__date__lte=fecha_hasta)
 
-        if user.rol == 'ANALIST':
+        if mi_bandeja:
+            qs = qs.filter(
+                Q(usuario_creador=user, estado__in=['BOR', 'PEND']) |
+                Q(analista_asignado=user, estado='DEV')
+            )
+        elif user.rol == 'ANALIST':
             qs = qs.filter(analista_asignado=user)
         return qs
 
