@@ -55,7 +55,10 @@ class SolicitudViewSet(viewsets.ModelViewSet):
                 Q(usuario_creador=user, estado__in=['BOR', 'PEND', 'DEV'])
             )
         elif user.rol == 'ANALIST':
-            qs = qs.filter(analista_asignado=user)
+            qs = qs.filter(
+                Q(analista_asignado=user) |
+                Q(usuario_creador=user, estado__in=['BOR', 'PEND'])
+            )
         return qs
 
     def get_serializer_class(self):
