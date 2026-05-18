@@ -131,6 +131,9 @@ class SolicitudViewSet(viewsets.ModelViewSet):
         if nuevo_estado == 'ASIG':
             solicitud.asignado_por = request.user
 
+        if nuevo_estado == 'ANU' and not solicitud.analista_asignado_id and solicitud.usuario_creador_id:
+            solicitud.analista_asignado = solicitud.usuario_creador
+
         if nuevo_estado in ('APRO', 'FIN'):
             solicitud.fecha_resolucion = timezone.now().date()
 
