@@ -52,8 +52,7 @@ class SolicitudViewSet(viewsets.ModelViewSet):
 
         if mi_bandeja:
             qs = qs.filter(
-                Q(usuario_creador=user, estado__in=['BOR', 'PEND']) |
-                Q(analista_asignado=user, estado='DEV')
+                Q(usuario_creador=user, estado__in=['BOR', 'PEND', 'DEV'])
             )
         elif user.rol == 'ANALIST':
             qs = qs.filter(analista_asignado=user)
@@ -125,9 +124,6 @@ class SolicitudViewSet(viewsets.ModelViewSet):
                 solicitud.analista_asignado = analista
             except CustomUser.DoesNotExist:
                 pass
-
-        if nuevo_estado == 'DEV' and solicitud.usuario_creador_id:
-            solicitud.analista_asignado = solicitud.usuario_creador
 
         if nuevo_estado in ('APRO', 'FIN'):
             solicitud.fecha_resolucion = timezone.now().date()
