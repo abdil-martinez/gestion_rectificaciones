@@ -350,6 +350,7 @@ export default function SolicitudList() {
                     <TableCell>Estado</TableCell>
                     <TableCell>Prioridad</TableCell>
                     <TableCell>Analista</TableCell>
+                    <TableCell>Asignado por</TableCell>
                     <TableCell>Fecha</TableCell>
                     <TableCell align="center">Acciones</TableCell>
                   </TableRow>
@@ -357,7 +358,7 @@ export default function SolicitudList() {
                 <TableBody>
                   {rows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={canBulkAssign ? 13 : 12} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      <TableCell colSpan={canBulkAssign ? 14 : 13} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                         {isBandeja
                           ? 'No tiene solicitudes pendientes en su bandeja.'
                           : 'No se encontraron solicitudes con los filtros aplicados.'}
@@ -403,6 +404,9 @@ export default function SolicitudList() {
                         <TableCell><PrioridadChip prioridad={sol.prioridad} /></TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">{sol.analista_nombre || '—'}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">{sol.asignado_por_nombre || '—'}</Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>

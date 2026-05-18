@@ -93,6 +93,7 @@ class SolicitudListSerializer(serializers.ModelSerializer):
     regional_nombre         = serializers.CharField(source='regional.nombre', read_only=True)
     tipo_regional_nombre    = serializers.CharField(source='regional.tipo_regional.nombre', read_only=True)
     analista_nombre         = serializers.SerializerMethodField()
+    asignado_por_nombre     = serializers.SerializerMethodField()
     estado_label            = serializers.SerializerMethodField()
     vencida                 = serializers.SerializerMethodField()
 
@@ -103,13 +104,19 @@ class SolicitudListSerializer(serializers.ModelSerializer):
             'asegurado_nombre', 'asegurado_cedula', 'asegurado_cua',
             'tipo_causal_nombre', 'tipo_solicitud_nombre',
             'regional_nombre', 'tipo_regional_nombre',
-            'analista_nombre', 'fecha_recepcion', 'fecha_limite', 'monto_total',
+            'analista_nombre', 'asignado_por_nombre',
+            'fecha_recepcion', 'fecha_limite', 'monto_total',
             'vencida', 'created_at', 'updated_at',
         ]
 
     def get_analista_nombre(self, obj):
         if obj.analista_asignado:
             return obj.analista_asignado.get_full_name() or obj.analista_asignado.username
+        return None
+
+    def get_asignado_por_nombre(self, obj):
+        if obj.asignado_por:
+            return obj.asignado_por.get_full_name() or obj.asignado_por.username
         return None
 
     def get_estado_label(self, obj):

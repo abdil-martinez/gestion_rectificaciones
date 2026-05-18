@@ -147,6 +147,12 @@ class Solicitud(AuditoriaModel):
         null=True, blank=True,
         related_name='solicitudes_asignadas',
     )
+    asignado_por        = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='solicitudes_asignadas_por',
+    )
     area_solicitante    = models.ForeignKey(
         Unidad, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes_unidad'
     )
