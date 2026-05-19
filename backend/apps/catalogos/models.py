@@ -39,17 +39,26 @@ class AuditoriaModel(models.Model):
     class Meta:
         abstract = True
 
-    def soft_delete(self, user=None):
+    def delete(self, using=None, keep_parents=False, user=None):
+        """Soft delete: marca como eliminado en lugar de borrar la fila."""
         from django.utils import timezone
         self.deleted_at = timezone.now()
         if user:
             self.usuario_eliminador = user
-        self.save()
+        self.save(update_fields=['deleted_at', 'usuario_eliminador_id'])
+
+    def hard_delete(self, using=None, keep_parents=False):
+        """Elimina físicamente el registro de la base de datos."""
+        super().delete(using=using, keep_parents=keep_parents)
+
+    # Alias explícito para compatibilidad con código existente
+    def soft_delete(self, user=None):
+        self.delete(user=user)
 
     def restore(self):
         self.deleted_at = None
         self.usuario_eliminador = None
-        self.save()
+        self.save(update_fields=['deleted_at', 'usuario_eliminador_id'])
 
     @property
     def activo(self):

@@ -1,9 +1,8 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from django.utils import timezone
+from .mixins import SoftDeleteMixin
 from .models import (
     TipoSolicitud, Administradora, TipoCausal, Unidad, TipoRegional,
     FormularioContribucion, TipoIdentificacion, AreaSolicitante,
@@ -28,7 +27,7 @@ class AdminWritePermission(IsAuthenticated):
         return request.user.rol in ('ADMIN',)
 
 
-class BaseCatalogoViewSet(viewsets.ModelViewSet):
+class BaseCatalogoViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     permission_classes = [AdminWritePermission]
     filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
@@ -37,12 +36,6 @@ class BaseCatalogoViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save(usuario_modificador=self.request.user)
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        user = request.user
-        instance.soft_delete(user=user)
-        return Response({'detail': 'Registro eliminado correctamente.'}, status=status.HTTP_200_OK)
 
 
 class TipoSolicitudViewSet(BaseCatalogoViewSet):

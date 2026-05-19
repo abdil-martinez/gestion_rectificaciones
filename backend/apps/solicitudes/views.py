@@ -15,6 +15,7 @@ from .serializers import (
     AseguradoSerializer, EmpleadorSerializer, SolicitanteSerializer,
 )
 from .workflow import puede_transitar, registrar_bitacora, transiciones_disponibles
+from apps.catalogos.mixins import SoftDeleteMixin
 
 
 def get_client_ip(request):
@@ -24,7 +25,7 @@ def get_client_ip(request):
     return request.META.get('REMOTE_ADDR')
 
 
-class SolicitudViewSet(viewsets.ModelViewSet):
+class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends    = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields   = ['estado', 'regional', 'regional__tipo_regional', 'analista_asignado', 'prioridad', 'tipo_causal']
@@ -267,7 +268,7 @@ class BitacoraViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields   = ['solicitud', 'usuario', 'estado_nuevo']
 
 
-class FormularioViewSet(viewsets.ModelViewSet):
+class FormularioViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset           = Formulario.objects.select_related('solicitud', 'tipo_planilla').all()
     serializer_class   = FormularioSerializer
     permission_classes = [IsAuthenticated]
@@ -278,7 +279,7 @@ class FormularioViewSet(viewsets.ModelViewSet):
         serializer.save(usuario_creador=self.request.user)
 
 
-class AseguradoViewSet(viewsets.ModelViewSet):
+class AseguradoViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset           = Asegurado.objects.all()
     serializer_class   = AseguradoSerializer
     permission_classes = [IsAuthenticated]
@@ -290,7 +291,7 @@ class AseguradoViewSet(viewsets.ModelViewSet):
         serializer.save(usuario_creador=self.request.user)
 
 
-class EmpleadorViewSet(viewsets.ModelViewSet):
+class EmpleadorViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset           = Empleador.objects.all()
     serializer_class   = EmpleadorSerializer
     permission_classes = [IsAuthenticated]
@@ -302,7 +303,7 @@ class EmpleadorViewSet(viewsets.ModelViewSet):
         serializer.save(usuario_creador=self.request.user)
 
 
-class DocumentoRespaldoViewSet(viewsets.ModelViewSet):
+class DocumentoRespaldoViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset           = DocumentoRespaldo.objects.select_related('documento', 'estado_documentacion').all()
     serializer_class   = DocumentoRespaldoSerializer
     permission_classes = [IsAuthenticated]
@@ -317,7 +318,7 @@ class DocumentoRespaldoViewSet(viewsets.ModelViewSet):
         serializer.save(usuario_modificador=self.request.user)
 
 
-class SolicitanteViewSet(viewsets.ModelViewSet):
+class SolicitanteViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     queryset           = Solicitante.objects.select_related('unidad', 'usuario').all()
     serializer_class   = SolicitanteSerializer
     permission_classes = [IsAuthenticated]
