@@ -599,7 +599,7 @@ export default function SolicitudDetail() {
     PEND: { label: 'Enviar',      color: 'info',    icon: <PlayArrowIcon /> },
     ASIG: { label: 'Asignar',     color: 'warning', icon: <AssignmentReturnIcon /> },
     REV:  { label: 'En Revisión', color: 'warning', icon: <PlayArrowIcon /> },
-    APRO: { label: 'Aprobar',     color: 'success', icon: <CheckCircleIcon /> },
+    APRO: { label: 'Rectificar',  color: 'success', icon: <CheckCircleIcon /> },
     RECH: { label: 'Rechazar',    color: 'error',   icon: <CancelIcon /> },
     DEV:  { label: 'Devolver',    color: 'secondary',icon: <ReplayIcon /> },
     FIN:  { label: 'Finalizar',   color: 'success', icon: <CheckCircleIcon /> },
@@ -855,13 +855,25 @@ export default function SolicitudDetail() {
       {/* Change State Dialog */}
       <Dialog open={cambioOpen} onClose={() => { setCambioOpen(false); setComentario(''); setAnalistaId('') }} maxWidth="sm" fullWidth>
         <DialogTitle fontWeight={700}>
-          Cambiar estado a: {nuevoEstado}
+          {BOTON_TRANSICION[nuevoEstado]?.label || nuevoEstado} — SOL-{sol.numero_solicitud}
         </DialogTitle>
         <DialogContent>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            Esta acción cambiará el estado de la solicitud <strong>{sol.numero_solicitud}</strong>.
-            Esta acción quedará registrada en la bitácora.
-          </Alert>
+          {nuevoEstado === 'FIN' && sol.estado === 'APRO' ? (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Está a punto de <strong>finalizar</strong> una solicitud rectificada.
+              Asegúrese de haber emitido las <strong>notificaciones al asegurado y empleador</strong> antes de continuar.
+            </Alert>
+          ) : nuevoEstado === 'FIN' && sol.estado === 'RECH' ? (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Está a punto de <strong>finalizar</strong> una solicitud rechazada.
+              Asegúrese de haber emitido la <strong>nota de rechazo</strong> antes de continuar.
+            </Alert>
+          ) : (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Esta acción cambiará el estado de la solicitud <strong>{sol.numero_solicitud}</strong>.
+              Quedará registrada en la bitácora.
+            </Alert>
+          )}
           {nuevoEstado === 'ASIG' && (
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Analista a asignar *</InputLabel>

@@ -6,7 +6,7 @@ const ESTADO_CONFIG = {
   PEND: { label: 'Pendiente',    color: 'info',      sx: {} },
   ASIG: { label: 'Asignado',     color: 'warning',   sx: {} },
   REV:  { label: 'En Revisión',  color: 'warning',   sx: { bgcolor: '#e65100', color: '#fff' } },
-  APRO: { label: 'Aprobado',     color: 'success',   sx: {} },
+  APRO: { label: 'Rectificado',  color: 'success',   sx: {} },
   RECH: { label: 'Rechazado',    color: 'error',     sx: {} },
   DEV:  { label: 'Devuelto',     color: 'secondary', sx: {} },
   FIN:  { label: 'Finalizado',   color: 'success',   sx: { bgcolor: '#1b5e20', color: '#fff' } },

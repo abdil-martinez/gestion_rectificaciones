@@ -7,7 +7,7 @@ TRANSICIONES_VALIDAS = {
     'REV':  ['APRO', 'RECH', 'DEV'],
     'DEV':  ['PEND', 'ANU'],
     'APRO': ['FIN'],
-    'RECH': ['ANU'],
+    'RECH': ['FIN', 'ANU'],
     'FIN':  [],
     'ANU':  [],
 }
@@ -25,7 +25,8 @@ ROLES_POR_TRANSICION = {
     ('REV',  'DEV'):  ['ADMIN', 'SUPER', 'ANALIST'],
     ('DEV',  'PEND'): ['ADMIN', 'SUPER', 'ANALIST'],
     ('DEV',  'ANU'):  ['ADMIN', 'SUPER'],
-    ('APRO', 'FIN'):  ['ADMIN', 'SUPER'],
+    ('APRO', 'FIN'):  ['ADMIN', 'SUPER', 'ANALIST'],
+    ('RECH', 'FIN'):  ['ADMIN', 'SUPER', 'ANALIST'],
     ('RECH', 'ANU'):  ['ADMIN', 'SUPER'],
 }
 
@@ -34,7 +35,7 @@ ETIQUETAS_ESTADO = {
     'PEND': 'Pendiente',
     'ASIG': 'Asignado',
     'REV':  'En Revisión',
-    'APRO': 'Aprobado',
+    'APRO': 'Rectificado',
     'RECH': 'Rechazado',
     'DEV':  'Devuelto',
     'FIN':  'Finalizado',

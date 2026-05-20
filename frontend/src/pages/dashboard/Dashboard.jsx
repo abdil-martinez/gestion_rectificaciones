@@ -27,7 +27,7 @@ const ESTADO_BAR_COLORS = {
 
 const ESTADO_LABELS = {
   BOR: 'Borrador', PEND: 'Pendiente', ASIG: 'Asignado',
-  REV: 'En Revisión', APRO: 'Aprobado', RECH: 'Rechazado',
+  REV: 'En Revisión', APRO: 'Rectificado', RECH: 'Rechazado',
   DEV: 'Devuelto',  FIN: 'Finalizado', ANU: 'Anulado',
 }
 

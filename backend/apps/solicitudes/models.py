@@ -11,7 +11,7 @@ ESTADO_CHOICES = [
     ('PEND', 'Pendiente'),
     ('ASIG', 'Asignado'),
     ('REV',  'En Revisión'),
-    ('APRO', 'Aprobado'),
+    ('APRO', 'Rectificado'),
     ('RECH', 'Rechazado'),
     ('DEV',  'Devuelto'),
     ('FIN',  'Finalizado'),

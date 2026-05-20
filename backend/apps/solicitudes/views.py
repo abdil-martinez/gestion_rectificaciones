@@ -53,12 +53,12 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
 
         if mi_bandeja:
             qs = qs.filter(
-                Q(usuario_creador=user, estado__in=['BOR', 'PEND', 'DEV'])
+                Q(usuario_creador=user, estado__in=['BOR', 'PEND', 'DEV', 'APRO', 'RECH'])
             )
         elif user.rol == 'ANALIST':
             qs = qs.filter(
                 Q(analista_asignado=user) |
-                Q(usuario_creador=user, estado__in=['BOR', 'PEND'])
+                Q(usuario_creador=user, estado__in=['BOR', 'PEND', 'APRO', 'RECH'])
             )
         return qs
 

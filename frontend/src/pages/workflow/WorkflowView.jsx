@@ -167,7 +167,7 @@ export default function WorkflowView() {
                   <MenuItem value="PEND">Pendiente</MenuItem>
                   <MenuItem value="ASIG">Asignado</MenuItem>
                   <MenuItem value="REV">En Revisión</MenuItem>
-                  <MenuItem value="APRO">Aprobado</MenuItem>
+                  <MenuItem value="APRO">Rectificado</MenuItem>
                   <MenuItem value="RECH">Rechazado</MenuItem>
                   <MenuItem value="DEV">Devuelto</MenuItem>
                   <MenuItem value="FIN">Finalizado</MenuItem>
