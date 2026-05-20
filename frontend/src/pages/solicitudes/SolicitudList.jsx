@@ -61,11 +61,12 @@ export default function SolicitudList() {
   const [exportLoading, setExportLoading] = useState(false)
 
   // Selección masiva
-  const [selected, setSelected]     = useState([])
-  const [asigOpen, setAsigOpen]     = useState(false)
-  const [analistaId, setAnalistaId] = useState('')
-  const [comentario, setComentario] = useState('')
-  const [assigning, setAssigning]   = useState(false)
+  const [selected, setSelected]             = useState([])
+  const [asigOpen, setAsigOpen]             = useState(false)
+  const [analistaId, setAnalistaId]         = useState('')
+  const [comentario, setComentario]         = useState('')
+  const [assigning, setAssigning]           = useState(false)
+  const [tipoRegionalBulk, setTipoRegionalBulk] = useState('')
 
   const isBandeja = activeTab === 1
 
@@ -95,8 +96,11 @@ export default function SolicitudList() {
   })
 
   const { data: usuariosData } = useQuery({
-    queryKey: ['usuarios-asignacion'],
-    queryFn:  () => getUsers({ is_active: true }).then((r) => r.data?.results || r.data),
+    queryKey: ['usuarios-asignacion', tipoRegionalBulk],
+    queryFn:  () => getUsers({
+      is_active: true,
+      ...(tipoRegionalBulk ? { tipo_regional: tipoRegionalBulk } : {}),
+    }).then((r) => r.data?.results || r.data),
     enabled:  asigOpen,
   })
 
@@ -435,7 +439,7 @@ export default function SolicitudList() {
       </Card>
 
       {/* Diálogo asignación masiva */}
-      <Dialog open={asigOpen} onClose={() => { setAsigOpen(false); setAnalistaId(''); setComentario('') }} maxWidth="sm" fullWidth>
+      <Dialog open={asigOpen} onClose={() => { setAsigOpen(false); setAnalistaId(''); setComentario(''); setTipoRegionalBulk('') }} maxWidth="sm" fullWidth>
         <DialogTitle fontWeight={700}>
           Asignación masiva — {selected.length} solicitud(es)
         </DialogTitle>
@@ -446,13 +450,26 @@ export default function SolicitudList() {
             Para pasar a Pendiente, abra la solicitud y haga clic en <strong>"Enviar"</strong>.
           </Alert>
           <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel>Filtrar por tipo de regional</InputLabel>
+            <Select
+              value={tipoRegionalBulk}
+              label="Filtrar por tipo de regional"
+              onChange={(e) => { setTipoRegionalBulk(e.target.value); setAnalistaId('') }}
+            >
+              <MenuItem value="">Todos</MenuItem>
+              {tiposRegionalData.map((t) => (
+                <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Analista a asignar *</InputLabel>
             <Select value={analistaId} label="Analista a asignar *" onChange={(e) => setAnalistaId(e.target.value)}>
               {(Array.isArray(usuariosData) ? usuariosData : []).map((u) => (
                 <MenuItem key={u.id} value={u.id}>
                   {u.first_name || u.last_name ? `${u.first_name} ${u.last_name}`.trim() : u.username}
                   <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                    ({u.rol})
+                    ({u.rol}) {u.tipo_regional_nombre ? `· ${u.tipo_regional_nombre}` : ''}
                   </Typography>
                 </MenuItem>
               ))}

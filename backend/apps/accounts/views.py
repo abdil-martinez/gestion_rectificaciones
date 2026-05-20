@@ -24,7 +24,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset            = CustomUser.objects.all().order_by('-date_joined')
     permission_classes  = [IsAuthenticated]
     filter_backends     = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields    = ['rol', 'regional', 'is_active']
+    filterset_fields    = ['rol', 'regional', 'tipo_regional', 'is_active']
     search_fields       = ['username', 'first_name', 'last_name', 'email']
     ordering_fields     = ['date_joined', 'first_name', 'last_name']
 

@@ -559,11 +559,12 @@ export default function SolicitudDetail() {
   const { user }     = useAuthStore()
   const queryClient  = useQueryClient()
 
-  const [cambioOpen, setCambioOpen]   = useState(false)
-  const [nuevoEstado, setNuevoEstado] = useState('')
-  const [comentario, setComentario]   = useState('')
-  const [analistaId, setAnalistaId]   = useState('')
-  const [saving, setSaving]           = useState(false)
+  const [cambioOpen, setCambioOpen]         = useState(false)
+  const [nuevoEstado, setNuevoEstado]       = useState('')
+  const [comentario, setComentario]         = useState('')
+  const [analistaId, setAnalistaId]         = useState('')
+  const [tipoRegionalAsig, setTipoRegionalAsig] = useState('')
+  const [saving, setSaving]                 = useState(false)
 
   const { data: sol, isLoading } = useQuery({
     queryKey: ['solicitud', id],
@@ -587,9 +588,18 @@ export default function SolicitudDetail() {
     enabled:  !!sol,
   })
 
+  const { data: tiposRegionalData = [] } = useQuery({
+    queryKey: ['tipo-regional'],
+    queryFn:  () => catalogosApi.tipoRegional.getAll().then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+  })
+
   const { data: usuariosData } = useQuery({
-    queryKey: ['usuarios-asignacion'],
-    queryFn:  () => getUsers({ is_active: true }).then((r) => r.data?.results || r.data),
+    queryKey: ['usuarios-asignacion', tipoRegionalAsig],
+    queryFn:  () => getUsers({
+      is_active: true,
+      ...(tipoRegionalAsig ? { tipo_regional: tipoRegionalAsig } : {}),
+    }).then((r) => r.data?.results || r.data),
     enabled:  nuevoEstado === 'ASIG',
   })
 
@@ -853,7 +863,7 @@ export default function SolicitudDetail() {
       </Grid>
 
       {/* Change State Dialog */}
-      <Dialog open={cambioOpen} onClose={() => { setCambioOpen(false); setComentario(''); setAnalistaId('') }} maxWidth="sm" fullWidth>
+      <Dialog open={cambioOpen} onClose={() => { setCambioOpen(false); setComentario(''); setAnalistaId(''); setTipoRegionalAsig('') }} maxWidth="sm" fullWidth>
         <DialogTitle fontWeight={700}>
           {BOTON_TRANSICION[nuevoEstado]?.label || nuevoEstado} — SOL-{sol.numero_solicitud}
         </DialogTitle>
@@ -875,27 +885,42 @@ export default function SolicitudDetail() {
             </Alert>
           )}
           {nuevoEstado === 'ASIG' && (
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Analista a asignar *</InputLabel>
-              <Select
-                value={analistaId}
-                label="Analista a asignar *"
-                onChange={(e) => setAnalistaId(e.target.value)}
-                error={!analistaId && saving}
-              >
-                {(Array.isArray(usuariosData) ? usuariosData : []).map((u) => (
-                  <MenuItem key={u.id} value={u.id}>
-                    {u.first_name || u.last_name
-                      ? `${u.first_name} ${u.last_name}`.trim()
-                      : u.username}
-                    {' '}
-                    <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      ({u.rol})
-                    </Typography>
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Filtrar por tipo de regional</InputLabel>
+                <Select
+                  value={tipoRegionalAsig}
+                  label="Filtrar por tipo de regional"
+                  onChange={(e) => { setTipoRegionalAsig(e.target.value); setAnalistaId('') }}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  {tiposRegionalData.map((t) => (
+                    <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Analista a asignar *</InputLabel>
+                <Select
+                  value={analistaId}
+                  label="Analista a asignar *"
+                  onChange={(e) => setAnalistaId(e.target.value)}
+                  error={!analistaId && saving}
+                >
+                  {(Array.isArray(usuariosData) ? usuariosData : []).map((u) => (
+                    <MenuItem key={u.id} value={u.id}>
+                      {u.first_name || u.last_name
+                        ? `${u.first_name} ${u.last_name}`.trim()
+                        : u.username}
+                      {' '}
+                      <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                        ({u.rol}) {u.tipo_regional_nombre ? `· ${u.tipo_regional_nombre}` : ''}
+                      </Typography>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </>
           )}
           <TextField
             fullWidth
