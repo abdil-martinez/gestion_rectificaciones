@@ -411,8 +411,9 @@ function StepEmpleador({ control, errors, setValue }) {
 }
 
 /* ── Paso 3: Detalle ────────────────────────────────────────────────── */
-function StepDetalle({ control, errors, setValue }) {
+function StepDetalle({ control, errors, setValue, getValues }) {
   const [tipoRegionalId, setTipoRegionalId] = React.useState('')
+  const [regionalId, setRegionalId]         = React.useState(() => getValues('regional') || '')
 
   const { data: tiposCausal }    = useQuery({ queryKey: ['tipo-causal'],    queryFn: () => catalogosApi.tipoCausal.getAll().then((r) => r.data.results || r.data) })
   const { data: tiposSolicitud } = useQuery({ queryKey: ['tipo-solicitud'], queryFn: () => catalogosApi.tipoSolicitud.getAll().then((r) => r.data.results || r.data) })
@@ -420,6 +421,11 @@ function StepDetalle({ control, errors, setValue }) {
   const { data: regionales }     = useQuery({
     queryKey: ['regionales', tipoRegionalId],
     queryFn:  () => catalogosApi.regionales.getAll(tipoRegionalId ? { tipo_regional: tipoRegionalId } : {}).then((r) => r.data.results || r.data),
+  })
+  const { data: agencias }       = useQuery({
+    queryKey: ['agencias-wizard', regionalId],
+    queryFn:  () => catalogosApi.agencias.getAll({ regional: regionalId }).then((r) => r.data.results || r.data),
+    enabled:  !!regionalId,
   })
   const { data: administradoras } = useQuery({ queryKey: ['administradoras'], queryFn: () => catalogosApi.administradoras.getAll().then((r) => r.data.results || r.data), staleTime: 5 * 60_000 })
 
@@ -458,7 +464,7 @@ function StepDetalle({ control, errors, setValue }) {
             <FormControl fullWidth>
               <InputLabel>Tipo de Regional</InputLabel>
               <Select value={tipoRegionalId} label="Tipo de Regional"
-                onChange={(e) => { setTipoRegionalId(e.target.value); setValue('regional', '') }}>
+                onChange={(e) => { setTipoRegionalId(e.target.value); setRegionalId(''); setValue('regional', ''); setValue('agencia', '') }}>
                 <MenuItem value=""><em>— Todos —</em></MenuItem>
                 {tiposRegional?.map((t) => <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>)}
               </Select>
@@ -469,9 +475,23 @@ function StepDetalle({ control, errors, setValue }) {
               render={({ field }) => (
                 <FormControl fullWidth>
                   <InputLabel>Regional (Departamento)</InputLabel>
-                  <Select {...field} label="Regional (Departamento)" value={field.value ?? ''}>
+                  <Select {...field} label="Regional (Departamento)" value={field.value ?? ''}
+                    onChange={(e) => { field.onChange(e); setRegionalId(e.target.value); setValue('agencia', '') }}>
                     <MenuItem value=""><em>— Sin especificar —</em></MenuItem>
                     {regionales?.map((r) => <MenuItem key={r.id} value={r.id}>{r.nombre}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              )}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Controller name="agencia" control={control}
+              render={({ field }) => (
+                <FormControl fullWidth disabled={!regionalId}>
+                  <InputLabel>Agencia (Sucursal)</InputLabel>
+                  <Select {...field} label="Agencia (Sucursal)" value={field.value ?? ''}>
+                    <MenuItem value=""><em>— Sin especificar —</em></MenuItem>
+                    {agencias?.map((a) => <MenuItem key={a.id} value={a.id}>{a.nombre}</MenuItem>)}
                   </Select>
                 </FormControl>
               )}
@@ -538,15 +558,22 @@ function StepDetalle({ control, errors, setValue }) {
 }
 
 /* ── Paso 4: Formularios y Documentos ───────────────────────────────── */
+const PERIODO_RE = /^\d{4}-(0[1-9]|1[0-2])$/
+const isValidPeriodo = (p) => !p || PERIODO_RE.test(p)
+
 function StepFormularios({ fpcRows, setFpcRows, docSelections, setDocSelections }) {
   const fileRefs = useRef({})
+  const [periodoBlurred, setPeriodoBlurred] = React.useState({})
 
   const { data: tiposPlanilla = [] } = useQuery({ queryKey: ['tipo-planilla'],       queryFn: () => catalogosApi.tipoPlanilla.getAll().then((r) => r.data.results || r.data) })
   const { data: catalogosDocs = [] } = useQuery({ queryKey: ['catalogo-documentos'], queryFn: () => catalogosApi.documentos.getAll().then((r) => r.data.results || r.data) })
 
   const emptyFpc = () => ({ numero: '', periodo: '', tipo_planilla: '', total_ganado: '' })
   const addFpc    = () => setFpcRows((r) => [...r, emptyFpc()])
-  const removeFpc = (idx) => setFpcRows((r) => r.filter((_, i) => i !== idx))
+  const removeFpc = (idx) => {
+    setFpcRows((r) => r.filter((_, i) => i !== idx))
+    setPeriodoBlurred((b) => { const n = { ...b }; delete n[idx]; return n })
+  }
   const updateFpc = (idx, field, val) =>
     setFpcRows((rows) => rows.map((r, i) => i === idx ? { ...r, [field]: val } : r))
 
@@ -603,10 +630,19 @@ function StepFormularios({ fpcRows, setFpcRows, docSelections, setDocSelections 
                       onChange={(e) => updateFpc(idx, 'numero', e.target.value)}
                       inputProps={{ style: { fontSize: '0.82rem' } }} sx={{ width: 90 }} />
                   </TableCell>
-                  <TableCell sx={cellSx}>
-                    <TextField size="small" variant="standard" placeholder="YYYY-MM" value={row.periodo}
+                  <TableCell sx={{ ...cellSx, verticalAlign: 'top', pt: 1 }}>
+                    <TextField
+                      size="small" variant="standard"
+                      placeholder="YYYY-MM"
+                      value={row.periodo}
                       onChange={(e) => updateFpc(idx, 'periodo', e.target.value)}
-                      inputProps={{ style: { fontSize: '0.82rem' } }} sx={{ width: 90 }} />
+                      onBlur={() => setPeriodoBlurred((b) => ({ ...b, [idx]: true }))}
+                      error={periodoBlurred[idx] && !isValidPeriodo(row.periodo)}
+                      helperText={periodoBlurred[idx] && !isValidPeriodo(row.periodo) ? 'Formato: YYYY-MM' : ''}
+                      inputProps={{ style: { fontSize: '0.82rem' } }}
+                      sx={{ width: 90 }}
+                      FormHelperTextProps={{ sx: { fontSize: '0.68rem', whiteSpace: 'nowrap' } }}
+                    />
                   </TableCell>
                   <TableCell sx={cellSx}>
                     <Select size="small" variant="standard" value={row.tipo_planilla}
@@ -987,6 +1023,7 @@ export default function SolicitudWizard() {
         tipo_solicitud:   '',
         tipo_causal:      '',
         regional:         '',
+        agencia:          '',
         administradora:   '',
         prioridad:        'NORMAL',
         detalle_causal:   '',
@@ -1010,6 +1047,17 @@ export default function SolicitudWizard() {
   }
 
   const handleNext = async () => {
+    // Paso 3 (Formularios): validar formato de período antes de avanzar
+    if (activeStep === 3) {
+      const invalid = fpcRows.filter((r) => r.periodo && !PERIODO_RE.test(r.periodo))
+      if (invalid.length > 0) {
+        toast.error(
+          `${invalid.length} formulario(s) con período inválido. Use el formato YYYY-MM (ej. 2025-03).`,
+          { duration: 4000 }
+        )
+        return
+      }
+    }
     const fieldsToValidate = FIELDS_BY_STEP[activeStep] || []
     const valid = fieldsToValidate.length === 0 || await trigger(fieldsToValidate)
     if (valid) setActiveStep((s) => s + 1)
@@ -1024,6 +1072,7 @@ export default function SolicitudWizard() {
         tipo_solicitud:   data.tipo_solicitud   || undefined,
         tipo_causal:      data.tipo_causal      || undefined,
         regional:         data.regional         || undefined,
+        agencia:          data.agencia          || undefined,
         administradora:   data.administradora   || undefined,
         area_solicitante: data.area_solicitante || undefined,
         fecha_recepcion:  data.fecha_recepcion  || undefined,
@@ -1065,7 +1114,7 @@ export default function SolicitudWizard() {
   const stepContent = [
     <StepAsegurado   key={0} control={control} errors={errors} setValue={setValue} />,
     <StepEmpleador   key={1} control={control} errors={errors} setValue={setValue} />,
-    <StepDetalle     key={2} control={control} errors={errors} setValue={setValue} />,
+    <StepDetalle     key={2} control={control} errors={errors} setValue={setValue} getValues={getValues} />,
     <StepFormularios key={3} fpcRows={fpcRows} setFpcRows={setFpcRows} docSelections={docSelections} setDocSelections={setDocSelections} />,
     <StepSolicitante key={4} control={control} />,
     <StepResumen     key={5} getValues={getValues} fpcRows={fpcRows} docSelections={docSelections} />,

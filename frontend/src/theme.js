@@ -1,61 +1,71 @@
 import { createTheme } from '@mui/material/styles'
 
-export const ORO       = '#CBab58'   // R203 G171 B88
+export const ORO       = '#CBab58'
 export const ORO_DARK  = '#96783C'
 export const ORO_LIGHT = '#E8D494'
 export const NAVY      = '#0F1932'
 export const NAVY2     = '#19284B'
 export const BG_DEFAULT = '#0D1627'
 
+// ── Modo claro / Azul Moderno ─────────────────────────────────────────────────
+export const BRAND_RED    = '#E53935'
+export const BRAND_BLUE   = '#1A73E8'
+export const BRAND_INDIGO = '#3B4FC2'
+
 // ── Dark / Medianoche azul profundo ──────────────────────────────────────────
 const dark = {
-  bgDefault:  '#0C1220',   // medianoche
-  bgPaper:    '#141C30',   // azul profundo
-  bgSurface:  '#080E18',   // noche cerrada
-  bgHover:    '#1E2C48',   // hover azul profundo
-  bgSelected: `${ORO}18`,
-  textPrimary:    '#E8EEFA',   // blanco azulado
-  textSecondary:  '#7088B0',   // acero azul
-  divider:    '#1E2C44',       // separador azul oscuro
-  sidebarBg:  '#080E18',       // sidebar noche cerrada
-  appbarBg:   '#141C30',       // appbar azul profundo
-  tableHead:  '#0C1220',       // cabecera medianoche
+  bgDefault:     '#0C1220',
+  bgPaper:       '#141C30',
+  bgSurface:     '#080E18',
+  bgHover:       '#1E2C48',
+  bgSelected:    `${ORO}18`,
+  textPrimary:   '#E8EEFA',
+  textSecondary: '#7088B0',
+  divider:       '#1E2C44',
+  sidebarBg:     '#080E18',
+  appbarBg:      '#141C30',
+  tableHead:     '#0C1220',
   tableRowHover: '#1E2C48',
-  cardBorder: '#1E2C44',
+  cardBorder:    '#1E2C44',
 }
 
-// ── Light / Arena / Desierto ──────────────────────────────────────────────────
+// ── Light / Azul Moderno · Gris Frío ─────────────────────────────────────────
 const light = {
-  bgDefault:  '#F0EBE0',   // arena pálida
-  bgPaper:    '#FAF6F0',   // blanco arena
-  bgSurface:  '#E6DDD0',   // arena oscuro
-  bgHover:    '#DDD3C4',   // hover arena
-  bgSelected: `${ORO}20`,
-  textPrimary:    '#201808',   // marrón arena oscuro
-  textSecondary:  '#786050',   // arena medio
-  divider:    '#C8BAA8',       // separador arena
-  sidebarBg:  '#E6DDD0',       // sidebar arena oscuro
-  appbarBg:   '#E6DDD0',       // appbar arena oscuro
-  tableHead:  '#DDD3C4',       // cabecera arena
-  tableRowHover: '#DDD3C4',
-  cardBorder: '#C8BAA8',
+  bgDefault:     '#F5F6FA',
+  bgPaper:       '#FFFFFF',
+  bgSurface:     '#F5F6FA',
+  bgHover:       '#EAEDF5',
+  bgSelected:    '#EAEDF5',
+  textPrimary:   '#1A1A2E',
+  textSecondary: '#6B7280',
+  divider:       '#D0D4E0',
+  sidebarBg:     '#FFFFFF',
+  appbarBg:      '#FFFFFF',
+  tableHead:     '#F5F6FA',
+  tableRowHover: '#F0F2F9',
+  cardBorder:    '#D0D4E0',
 }
 
 export const createAppTheme = (mode) => {
-  const t  = mode === 'dark' ? dark : light
+  const t      = mode === 'dark' ? dark : light
   const isDark = mode === 'dark'
+
+  const primaryMain  = isDark ? ORO        : BRAND_BLUE
+  const primaryDark  = isDark ? ORO_DARK   : '#1557B0'
+  const primaryLight = isDark ? ORO_LIGHT  : '#4D8EF0'
+  const primaryText  = isDark ? NAVY       : '#ffffff'
 
   return createTheme({
     palette: {
       mode,
       primary: {
-        main:         ORO,
-        dark:         ORO_DARK,
-        light:        ORO_LIGHT,
-        contrastText: NAVY,
+        main:         primaryMain,
+        dark:         primaryDark,
+        light:        primaryLight,
+        contrastText: primaryText,
       },
       secondary: {
-        main:         isDark ? '#4C9FE8' : '#2A6DB5',
+        main:         isDark ? '#4C9FE8' : BRAND_INDIGO,
         contrastText: '#ffffff',
       },
       background: {
@@ -66,13 +76,11 @@ export const createAppTheme = (mode) => {
         primary:   t.textPrimary,
         secondary: t.textSecondary,
       },
-      success: { main: '#4CAF50' },
+      success: { main: '#1DB954' },
       warning: { main: '#FF9800' },
       error:   { main: '#F44336' },
       info:    { main: '#2196F3' },
       divider: t.divider,
-      // Custom tokens accessible via theme.vars (MUI v5 approach via augmentation)
-      // We expose them as palette.custom for use in components
       custom: {
         bgSurface:  t.bgSurface,
         bgHover:    t.bgHover,
@@ -106,26 +114,38 @@ export const createAppTheme = (mode) => {
         styleOverrides: {
           root: {
             backgroundColor: t.appbarBg,
-            borderBottom: `2px solid ${ORO}`,
+            borderBottom: `2px solid ${isDark ? ORO : BRAND_BLUE}`,
             boxShadow: isDark
               ? '0 2px 12px rgba(0,0,0,0.4)'
-              : '0 2px 8px rgba(0,0,0,0.08)',
-            color: isDark ? '#fff' : t.textPrimary,
+              : '0 1px 6px rgba(0,0,0,0.08)',
+            color: isDark ? '#ffffff' : t.textPrimary,
           },
         },
       },
       MuiButton: {
         styleOverrides: {
+          root: {
+            transition: 'all 0.2s ease',
+          },
           containedPrimary: {
-            color: NAVY,
+            color: isDark ? NAVY : '#ffffff',
             fontWeight: 700,
-            '&:hover': { backgroundColor: ORO_DARK },
+            '&:hover': {
+              backgroundColor: primaryDark,
+              transform: 'translateY(-1px)',
+              boxShadow: isDark ? `0 4px 14px ${ORO}55` : '0 4px 12px rgba(26,115,232,0.4)',
+            },
+            '&:active': { transform: 'translateY(0)' },
           },
         },
       },
       MuiChip: {
         styleOverrides: {
-          colorPrimary: { backgroundColor: ORO, color: NAVY, fontWeight: 600 },
+          colorPrimary: {
+            backgroundColor: isDark ? ORO : BRAND_BLUE,
+            color: isDark ? NAVY : '#ffffff',
+            fontWeight: 600,
+          },
         },
       },
       MuiCard: {
@@ -136,7 +156,13 @@ export const createAppTheme = (mode) => {
             backgroundImage: 'none',
             boxShadow: isDark
               ? '0 1px 6px rgba(0,0,0,0.25)'
-              : '0 1px 6px rgba(0,0,0,0.06)',
+              : '0 1px 4px rgba(0,0,0,0.07)',
+            transition: 'box-shadow 0.3s ease, border-color 0.3s ease, transform 0.2s ease',
+            '&:hover': {
+              boxShadow: isDark
+                ? `0 4px 20px rgba(0,0,0,0.4), 0 0 0 1px ${ORO}22`
+                : '0 4px 16px rgba(0,0,0,0.12)',
+            },
           },
         },
       },
@@ -153,12 +179,12 @@ export const createAppTheme = (mode) => {
           root: {
             '& .MuiTableCell-head': {
               backgroundColor: t.tableHead,
-              color: isDark ? ORO : ORO_DARK,
+              color: isDark ? ORO : BRAND_BLUE,
               fontWeight: 700,
               fontSize: '0.82rem',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
-              borderBottom: `2px solid ${t.divider}`,
+              borderBottom: `2px solid ${isDark ? t.divider : BRAND_BLUE}55`,
             },
           },
         },
@@ -166,9 +192,10 @@ export const createAppTheme = (mode) => {
       MuiTableRow: {
         styleOverrides: {
           root: {
+            transition: 'background-color 0.15s ease',
             '&:hover': { backgroundColor: t.tableRowHover },
             '&.Mui-selected': { backgroundColor: t.bgSelected },
-            '&.Mui-selected:hover': { backgroundColor: isDark ? `${ORO}18` : `${ORO}22` },
+            '&.Mui-selected:hover': { backgroundColor: isDark ? `${ORO}18` : '#EAEDF5' },
           },
         },
       },
@@ -204,9 +231,9 @@ export const createAppTheme = (mode) => {
             borderRadius: 8,
             '&.Mui-selected': {
               backgroundColor: t.bgSelected,
-              color: ORO,
-              '& .MuiListItemIcon-root': { color: ORO },
-              '&:hover': { backgroundColor: isDark ? `${ORO}33` : `${ORO}28` },
+              color: isDark ? ORO : BRAND_INDIGO,
+              '& .MuiListItemIcon-root': { color: isDark ? ORO : BRAND_INDIGO },
+              '&:hover': { backgroundColor: isDark ? `${ORO}33` : '#E0E4F4' },
             },
             '&:hover': { backgroundColor: t.bgHover },
           },
@@ -231,8 +258,8 @@ export const createAppTheme = (mode) => {
       MuiTooltip: {
         styleOverrides: {
           tooltip: {
-            backgroundColor: isDark ? '#1E2C48' : '#201808',
-            color: isDark ? '#E8EEFA' : '#FAF6F0',
+            backgroundColor: isDark ? '#1E2C48' : '#1A1A2E',
+            color: '#F5F6FA',
             fontSize: '0.78rem',
           },
         },

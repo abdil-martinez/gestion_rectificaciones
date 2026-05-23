@@ -141,6 +141,12 @@ class Solicitud(AuditoriaModel):
     regional            = models.ForeignKey(
         Regional, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes'
     )
+    agencia             = models.ForeignKey(
+        'catalogos.Agencia',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='solicitudes',
+    )
     analista_asignado   = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

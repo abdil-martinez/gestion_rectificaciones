@@ -18,7 +18,8 @@ import { ORO, NAVY } from '../../theme'
 
 const CATALOGOS = [
   { key: 'tipoSolicitud',          label: 'Tipos de Solicitud',          fields: [{ name: 'codigo', label: 'Código', required: true }, { name: 'descripcion', label: 'Descripción', required: true }] },
-  { key: 'tipoCausal',             label: 'Tipos de Causal',             fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'tipo', label: 'Tipo', type: 'select', options: [{ value: 'CONTRIBUCION', label: 'Contribución' }, { value: 'PRESTACION', label: 'Prestación' }, { value: 'ADMINISTRATIVO', label: 'Administrativo' }, { value: 'OTRO', label: 'Otro' }] }] },
+  { key: 'categoriaCausal',        label: 'Categorías de Causal',        fields: [{ name: 'nombre', label: 'Nombre', required: true }] },
+  { key: 'tipoCausal',             label: 'Tipos de Causal',             fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'tipo', label: 'Categoría', type: 'fk_select', catalog: 'categoriaCausal', optionLabel: 'nombre', displayField: 'tipo_nombre' }] },
   { key: 'unidades',               label: 'Unidades',                    fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'descripcion', label: 'Descripción' }] },
   { key: 'regionales',             label: 'Regionales',                  fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'tipo_regional', label: 'Tipo de Regional', type: 'fk_select', catalog: 'tipoRegional', optionLabel: 'nombre', displayField: 'tipo_regional_nombre', required: true }] },
   { key: 'agencias',               label: 'Agencias',                    fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'regional', label: 'Regional', type: 'fk_select', catalog: 'regionales', optionLabel: 'nombre', displayField: 'regional_nombre', required: true }] },
@@ -64,7 +65,7 @@ function RecordDialog({ open, onClose, catalogo, record, onSave }) {
   const defaultValues = React.useMemo(() => {
     const def = {}
     catalogo?.fields?.forEach((f) => {
-      def[f.name] = record?.[f.name] ?? ''
+      def[f.name] = record?.[f.name] ?? f.defaultValue ?? ''
     })
     return def
   }, [catalogo, record])

@@ -421,79 +421,117 @@ function DocsSidebar({ solicitudId, sol }) {
   }
 
   return (
-    <Box>
-      {/* Botón descargar PDF */}
-      <Button
-        fullWidth
-        variant="outlined"
-        size="small"
-        startIcon={pdfLoading ? <CircularProgress size={14} /> : <PictureAsPdfIcon />}
-        disabled={pdfLoading}
-        onClick={handleDescargarPDF}
-        sx={{ mb: 2, borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}18` } }}
-      >
-        {pdfLoading ? 'Generando…' : 'Descargar Solicitud PDF'}
-      </Button>
+    <Box sx={{
+      border: '1px solid',
+      borderColor: `${ORO}44`,
+      borderTop: `3px solid ${ORO}`,
+      borderRadius: 2,
+      overflow: 'hidden',
+    }}>
 
-      {/* Lista de documentos adjuntos (excluye notificaciones firmadas) */}
-      {(() => {
-        const visibles = docsRespaldo.filter((d) => !NOTIF_KEYS.includes(d.observacion))
-        if (visibles.length === 0) {
-          return (
-            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic', mb: 2 }}>
-              Sin documentos adjuntos.
-            </Typography>
-          )
-        }
-        return (
-          <Box sx={{ maxHeight: 300, overflowY: 'auto', mb: 2 }}>
-            {visibles.map((doc) => {
-              const info = doc.documento ? catalogosDocs.find((d) => d.id === doc.documento) : null
-              const label = info?.descripcion || info?.nombre
-                || (doc.observacion && !NOTIF_KEYS.includes(doc.observacion) ? doc.observacion : null)
-                || `Documento #${doc.id}`
-              return (
-                <Box
-                  key={doc.id}
-                  sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 1, borderBottom: '1px solid #2A3D6B' }}
-                >
-                  <AttachFileIcon sx={{ fontSize: 16, color: ORO, mt: 0.3, flexShrink: 0 }} />
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="body2" fontWeight={600} noWrap>{label}</Typography>
-                    {info?.codigo && (
-                      <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
-                        {info.codigo}
-                      </Typography>
-                    )}
-                    {doc.archivo ? (
-                      <Box>
-                        <Chip
-                          label="Ver / Descargar"
-                          size="small"
-                          component="a"
-                          href={`http://localhost:8000${doc.archivo}`}
-                          target="_blank"
-                          clickable
-                          icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
-                          sx={{ mt: 0.5, bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem' }}
-                        />
-                      </Box>
-                    ) : (
-                      <Typography variant="caption" color="text.disabled">Sin archivo</Typography>
-                    )}
-                  </Box>
-                </Box>
-              )
-            })}
-          </Box>
-        )
-      })()}
-
-      {/* Subir documento adicional */}
-      <Box sx={{ borderTop: '1px solid #2A3D6B', pt: 1.5 }}>
-        <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase', display: 'block', mb: 1 }}>
-          Subir documento adicional
+      {/* ── Encabezado del bloque externo ── */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.5, py: 1, bgcolor: `${ORO}10`, borderBottom: `1px solid ${ORO}33` }}>
+        <AttachFileIcon sx={{ fontSize: 15, color: ORO }} />
+        <Typography variant="caption" fontWeight={700} sx={{ color: ORO, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          Documentos adjuntos
         </Typography>
+      </Box>
+
+      <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+        {/* ── Sub-bloque: lista + descargar ── */}
+        <Box sx={{
+          border: '1px solid',
+          borderColor: `${ORO}33`,
+          borderRadius: 1.5,
+          p: 1.2,
+          bgcolor: `${ORO}05`,
+        }}>
+          <Button
+            fullWidth
+            variant="outlined"
+            size="small"
+            startIcon={pdfLoading ? <CircularProgress size={14} /> : <PictureAsPdfIcon />}
+            disabled={pdfLoading}
+            onClick={handleDescargarPDF}
+            sx={{ mb: 1.5, borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}18` } }}
+          >
+            {pdfLoading ? 'Generando…' : 'Descargar Solicitud PDF'}
+          </Button>
+
+          {(() => {
+            const visibles = docsRespaldo.filter((d) => !NOTIF_KEYS.includes(d.observacion))
+            if (visibles.length === 0) {
+              return (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  Sin documentos adjuntos.
+                </Typography>
+              )
+            }
+            return (
+              <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
+                {visibles.map((doc) => {
+                  const info = doc.documento ? catalogosDocs.find((d) => d.id === doc.documento) : null
+                  const label = info?.descripcion || info?.nombre
+                    || (doc.observacion && !NOTIF_KEYS.includes(doc.observacion) ? doc.observacion : null)
+                    || `Documento #${doc.id}`
+                  return (
+                    <Box
+                      key={doc.id}
+                      sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, py: 1, borderBottom: '1px solid #2A3D6B' }}
+                    >
+                      <AttachFileIcon sx={{ fontSize: 16, color: ORO, mt: 0.3, flexShrink: 0 }} />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body2" fontWeight={600} noWrap>{label}</Typography>
+                        {info?.codigo && (
+                          <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                            {info.codigo}
+                          </Typography>
+                        )}
+                        {doc.archivo ? (
+                          <Box>
+                            <Chip
+                              label="Ver / Descargar"
+                              size="small"
+                              component="a"
+                              href={`http://localhost:8000${doc.archivo}`}
+                              target="_blank"
+                              clickable
+                              icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
+                              sx={{ mt: 0.5, bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem' }}
+                            />
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.disabled">Sin archivo</Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  )
+                })}
+              </Box>
+            )
+          })()}
+        </Box>
+
+        {/* ── Sub-bloque: Seleccionar archivo ── */}
+        <Box sx={{
+          border: '2px dashed',
+          borderColor: `${ORO}55`,
+          borderRadius: 1.5,
+          p: 1.2,
+          bgcolor: `${ORO}04`,
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          '&:hover': {
+            borderColor: ORO,
+            boxShadow: `0 0 0 3px ${ORO}1A`,
+          },
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.2 }}>
+            <UploadFileIcon sx={{ fontSize: 15, color: ORO }} />
+            <Typography variant="caption" fontWeight={700} sx={{ color: ORO, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Subir documento adicional
+            </Typography>
+          </Box>
         <TextField
           size="small" fullWidth
           label="Descripción del documento"
@@ -535,7 +573,10 @@ function DocsSidebar({ solicitudId, sol }) {
         >
           {uploading ? 'Subiendo…' : 'Seleccionar archivo'}
         </Button>
+        </Box>
+
       </Box>
+
     </Box>
   )
 }
@@ -742,6 +783,7 @@ export default function SolicitudDetail() {
               <InfoRow label="Tipo de solicitud" value={sol.tipo_solicitud_nombre} />
               <InfoRow label="Tipo de causal" value={sol.tipo_causal_nombre} />
               <InfoRow label="Regional" value={sol.regional_nombre} />
+              <InfoRow label="Creador" value={sol.usuario_creador_nombre} />
               <InfoRow label="Analista asignado" value={sol.analista_nombre} />
               <InfoRow label="Fecha de recepción" value={sol.fecha_recepcion ? dayjs(sol.fecha_recepcion).format('DD/MM/YYYY') : null} />
               <InfoRow label="Fecha límite" value={sol.fecha_limite ? dayjs(sol.fecha_limite).format('DD/MM/YYYY') : null} />

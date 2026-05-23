@@ -4,6 +4,7 @@ import {
   Tooltip, Avatar, Menu, MenuItem, Divider,
   ToggleButtonGroup, ToggleButton,
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
 import LogoutIcon from '@mui/icons-material/Logout'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
@@ -13,7 +14,7 @@ import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useThemeStore } from '../../store/themeStore'
-import { ORO, NAVY } from '../../theme'
+import { ORO, NAVY, BRAND_BLUE, BRAND_INDIGO } from '../../theme'
 
 const PAGE_TITLES = {
   '/':             'Dashboard',
@@ -30,6 +31,13 @@ export default function Topbar({ onMenuToggle, drawerWidth }) {
   const { user, clearAuth } = useAuthStore()
   const { mode, setMode }   = useThemeStore()
   const [anchorEl, setAnchorEl] = React.useState(null)
+  const muiTheme  = useTheme()
+  const isDark    = muiTheme.palette.mode === 'dark'
+  const accent    = isDark ? ORO : BRAND_BLUE
+  const avatarBg  = isDark ? ORO : BRAND_INDIGO
+  const avatarFg  = isDark ? NAVY : '#ffffff'
+  const titleColor = isDark ? ORO : muiTheme.palette.text.primary
+  const toggleBase = isDark ? ORO : '#6B7280'
 
   const title = Object.entries(PAGE_TITLES)
     .sort((a, b) => b[0].length - a[0].length)
@@ -59,7 +67,7 @@ export default function Topbar({ onMenuToggle, drawerWidth }) {
           <MenuIcon />
         </IconButton>
 
-        <Typography variant="h6" sx={{ flex: 1, fontWeight: 700, color: ORO }}>
+        <Typography variant="h6" sx={{ flex: 1, fontWeight: 700, color: titleColor }}>
           {title}
         </Typography>
 
@@ -73,17 +81,17 @@ export default function Topbar({ onMenuToggle, drawerWidth }) {
             sx={{
               '& .MuiToggleButton-root': {
                 border: '1px solid',
-                borderColor: `${ORO}44`,
-                color: 'text.secondary',
+                borderColor: `${toggleBase}44`,
+                color: isDark ? 'text.secondary' : 'rgba(255,255,255,0.6)',
                 px: 0.8,
                 py: 0.4,
                 '&.Mui-selected': {
-                  bgcolor: `${ORO}22`,
-                  color: ORO,
-                  borderColor: `${ORO}88`,
-                  '&:hover': { bgcolor: `${ORO}33` },
+                  bgcolor: `${accent}22`,
+                  color: accent,
+                  borderColor: `${accent}88`,
+                  '&:hover': { bgcolor: `${accent}33` },
                 },
-                '&:hover': { bgcolor: `${ORO}11` },
+                '&:hover': { bgcolor: `${accent}11` },
               },
             }}
           >
@@ -112,7 +120,7 @@ export default function Topbar({ onMenuToggle, drawerWidth }) {
             <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} size="small">
               <Avatar
                 src={user?.avatar || undefined}
-                sx={{ width: 32, height: 32, bgcolor: ORO, color: NAVY, fontSize: 13, fontWeight: 700 }}
+                sx={{ width: 32, height: 32, bgcolor: avatarBg, color: avatarFg, fontSize: 13, fontWeight: 700 }}
               >
                 {user?.first_name?.[0] || user?.username?.[0] || '?'}
               </Avatar>

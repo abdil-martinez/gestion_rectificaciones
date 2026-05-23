@@ -11,6 +11,7 @@ export const exportarExcel = (params) =>
   api.get('/solicitudes/solicitudes/exportar/', { params, responseType: 'blob' })
 export const enviarNotificacion = (id, destinatariosExtra = []) =>
   api.post(`/solicitudes/solicitudes/${id}/enviar_notificacion/`, { destinatarios_extra: destinatariosExtra })
+export const reasignarSolicitudes = (data) => api.post('/solicitudes/solicitudes/reasignar/', data)
 
 export const getAsegurados = (params) => api.get('/solicitudes/asegurados/', { params })
 export const getAsegurado = (id) => api.get(`/solicitudes/asegurados/${id}/`)

@@ -49,26 +49,63 @@ export default function UsersPage() {
     staleTime: 10 * 60_000,
   })
 
-  const { control, handleSubmit, reset, formState: { errors } } = useForm({
-    defaultValues: { username: '', email: '', first_name: '', last_name: '', rol: 'ANALIST', tipo_regional: '', password: '', password2: '' },
+  const EMPTY_FORM = { username: '', email: '', first_name: '', last_name: '', rol: 'ANALIST', tipo_regional: '', regional: '', agencia: '', password: '', password2: '' }
+
+  const { control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({ defaultValues: EMPTY_FORM })
+
+  const watchTipoRegional = watch('tipo_regional')
+  const watchRegional     = watch('regional')
+
+  const { data: regionalesData = [] } = useQuery({
+    queryKey: ['regionales-form', watchTipoRegional],
+    queryFn:  () => catalogosApi.regionales.getAll(
+      watchTipoRegional ? { tipo_regional: watchTipoRegional } : {}
+    ).then((r) => r.data.results || r.data),
+    enabled:   dialogOpen,
+    staleTime: 5 * 60_000,
+  })
+
+  const { data: agenciasData = [] } = useQuery({
+    queryKey: ['agencias-form', watchRegional],
+    queryFn:  () => catalogosApi.agencias.getAll({ regional: watchRegional })
+      .then((r) => r.data.results || r.data),
+    enabled:   dialogOpen && !!watchRegional,
+    staleTime: 5 * 60_000,
   })
 
   const openCreate = () => {
     setEditUser(null)
-    reset({ username: '', email: '', first_name: '', last_name: '', rol: 'ANALIST', tipo_regional: '', password: '', password2: '' })
+    reset(EMPTY_FORM)
     setDialogOpen(true)
   }
 
   const openEdit = (user) => {
     setEditUser(user)
-    reset({ username: user.username, email: user.email, first_name: user.first_name, last_name: user.last_name, rol: user.rol, tipo_regional: user.tipo_regional || '' })
+    reset({
+      username:     user.username,
+      email:        user.email,
+      first_name:   user.first_name,
+      last_name:    user.last_name,
+      rol:          user.rol,
+      tipo_regional: user.tipo_regional || '',
+      regional:     user.regional       || '',
+      agencia:      user.agencia        || '',
+    })
     setDialogOpen(true)
   }
 
   const onSubmit = async (data) => {
     try {
       if (editUser) {
-        await updateUser(editUser.id, { email: data.email, first_name: data.first_name, last_name: data.last_name, rol: data.rol, tipo_regional: data.tipo_regional || null })
+        await updateUser(editUser.id, {
+          email:         data.email,
+          first_name:    data.first_name,
+          last_name:     data.last_name,
+          rol:           data.rol,
+          tipo_regional: data.tipo_regional || null,
+          regional:      data.regional      || null,
+          agencia:       data.agencia       || null,
+        })
         toast.success('Usuario actualizado')
       } else {
         await createUser(data)
@@ -139,6 +176,8 @@ export default function UsersPage() {
                   <TableCell>Email</TableCell>
                   <TableCell>Rol</TableCell>
                   <TableCell>Tipo Regional</TableCell>
+                  <TableCell>Regional</TableCell>
+                  <TableCell>Agencia</TableCell>
                   <TableCell>Estado</TableCell>
                   <TableCell align="center">Acciones</TableCell>
                 </TableRow>
@@ -146,7 +185,7 @@ export default function UsersPage() {
               <TableBody>
                 {users.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                    <TableCell colSpan={9} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                       No se encontraron usuarios.
                     </TableCell>
                   </TableRow>
@@ -184,6 +223,16 @@ export default function UsersPage() {
                       <TableCell>
                         <Typography variant="body2" color="text.secondary">
                           {user.tipo_regional_nombre || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {user.regional_nombre || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {user.agencia_nombre || '—'}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -288,10 +337,52 @@ export default function UsersPage() {
                 render={({ field }) => (
                   <FormControl fullWidth>
                     <InputLabel>Tipo de Regional</InputLabel>
-                    <Select {...field} label="Tipo de Regional">
+                    <Select
+                      {...field}
+                      label="Tipo de Regional"
+                      onChange={(e) => { field.onChange(e); setValue('regional', ''); setValue('agencia', '') }}
+                    >
                       <MenuItem value="">Ninguno</MenuItem>
                       {tiposRegional?.map((t) => (
                         <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="regional"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth>
+                    <InputLabel>Regional</InputLabel>
+                    <Select
+                      {...field}
+                      label="Regional"
+                      onChange={(e) => { field.onChange(e); setValue('agencia', '') }}
+                    >
+                      <MenuItem value="">Ninguna</MenuItem>
+                      {regionalesData.map((r) => (
+                        <MenuItem key={r.id} value={r.id}>{r.nombre}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Controller
+                name="agencia"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth disabled={!watchRegional}>
+                    <InputLabel>Agencia (Sucursal)</InputLabel>
+                    <Select {...field} label="Agencia (Sucursal)">
+                      <MenuItem value="">Ninguna</MenuItem>
+                      {agenciasData.map((a) => (
+                        <MenuItem key={a.id} value={a.id}>{a.nombre}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>

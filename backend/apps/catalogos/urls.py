@@ -1,8 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    TipoSolicitudViewSet, AdministradoraViewSet, TipoCausalViewSet,
-    UnidadViewSet, TipoRegionalViewSet, FormularioContribucionViewSet,
+    TipoSolicitudViewSet, AdministradoraViewSet, CategoriaCausalViewSet,
+    TipoCausalViewSet, UnidadViewSet, TipoRegionalViewSet, FormularioContribucionViewSet,
     TipoIdentificacionViewSet, AreaSolicitanteViewSet, EstadoPlazoViewSet,
     TipoPlanillaViewSet, EstadoDocumentacionViewSet, DocumentoViewSet,
     RegionalViewSet, AgenciaViewSet,
@@ -11,6 +11,7 @@ from .views import (
 router = DefaultRouter()
 router.register('tipo-solicitud',          TipoSolicitudViewSet,          basename='tipo-solicitud')
 router.register('administradoras',         AdministradoraViewSet,         basename='administradoras')
+router.register('categoria-causal',        CategoriaCausalViewSet,        basename='categoria-causal')
 router.register('tipo-causal',             TipoCausalViewSet,             basename='tipo-causal')
 router.register('unidades',                UnidadViewSet,                 basename='unidades')
 router.register('tipo-regional',           TipoRegionalViewSet,           basename='tipo-regional')

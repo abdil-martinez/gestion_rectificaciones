@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.conf import settings
 
 
@@ -66,13 +67,16 @@ class AuditoriaModel(models.Model):
 
 
 class TipoSolicitud(AuditoriaModel):
-    codigo      = models.CharField(max_length=20, unique=True)
+    codigo      = models.CharField(max_length=20)
     descripcion = models.CharField(max_length=200)
 
     class Meta:
         verbose_name        = 'Tipo de Solicitud'
         verbose_name_plural = 'Tipos de Solicitud'
         ordering            = ['codigo']
+        constraints         = [
+            models.UniqueConstraint(fields=['codigo'], condition=Q(deleted_at__isnull=True), name='unique_tiposolicitud_codigo_active'),
+        ]
 
     def __str__(self):
         return f"{self.codigo} - {self.descripcion}"
@@ -80,12 +84,27 @@ class TipoSolicitud(AuditoriaModel):
 
 class Administradora(AuditoriaModel):
     nombre = models.CharField(max_length=200)
-    codigo = models.CharField(max_length=20, unique=True)
+    codigo = models.CharField(max_length=20)
     nit    = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
         verbose_name        = 'Administradora'
         verbose_name_plural = 'Administradoras'
+        ordering            = ['nombre']
+        constraints         = [
+            models.UniqueConstraint(fields=['codigo'], condition=Q(deleted_at__isnull=True), name='unique_administradora_codigo_active'),
+        ]
+
+    def __str__(self):
+        return self.nombre
+
+
+class CategoriaCausal(AuditoriaModel):
+    nombre = models.CharField(max_length=100)
+
+    class Meta:
+        verbose_name        = 'Categoría de Causal'
+        verbose_name_plural = 'Categorías de Causal'
         ordering            = ['nombre']
 
     def __str__(self):
@@ -93,14 +112,13 @@ class Administradora(AuditoriaModel):
 
 
 class TipoCausal(AuditoriaModel):
-    TIPO_CHOICES = [
-        ('CONTRIBUCION', 'Contribución'),
-        ('PRESTACION',   'Prestación'),
-        ('ADMINISTRATIVO', 'Administrativo'),
-        ('OTRO',         'Otro'),
-    ]
     nombre = models.CharField(max_length=200)
-    tipo   = models.CharField(max_length=30, choices=TIPO_CHOICES, default='OTRO')
+    tipo   = models.ForeignKey(
+        CategoriaCausal,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='causales',
+    )
 
     class Meta:
         verbose_name        = 'Tipo de Causal'
@@ -125,12 +143,15 @@ class Unidad(AuditoriaModel):
 
 
 class TipoRegional(AuditoriaModel):
-    nombre = models.CharField(max_length=100, unique=True)
+    nombre = models.CharField(max_length=100)
 
     class Meta:
         verbose_name        = 'Tipo de Regional'
         verbose_name_plural = 'Tipos de Regional'
         ordering            = ['nombre']
+        constraints         = [
+            models.UniqueConstraint(fields=['nombre'], condition=Q(deleted_at__isnull=True), name='unique_tiporegional_nombre_active'),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -150,12 +171,15 @@ class FormularioContribucion(AuditoriaModel):
 
 class TipoIdentificacion(AuditoriaModel):
     nombre = models.CharField(max_length=100)
-    codigo = models.CharField(max_length=20, unique=True)
+    codigo = models.CharField(max_length=20)
 
     class Meta:
         verbose_name        = 'Tipo de Identificación'
         verbose_name_plural = 'Tipos de Identificación'
         ordering            = ['nombre']
+        constraints         = [
+            models.UniqueConstraint(fields=['codigo'], condition=Q(deleted_at__isnull=True), name='unique_tipoidentificacion_codigo_active'),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -163,12 +187,15 @@ class TipoIdentificacion(AuditoriaModel):
 
 class AreaSolicitante(AuditoriaModel):
     nombre = models.CharField(max_length=200)
-    codigo = models.CharField(max_length=20, unique=True)
+    codigo = models.CharField(max_length=20)
 
     class Meta:
         verbose_name        = 'Área Solicitante'
         verbose_name_plural = 'Áreas Solicitantes'
         ordering            = ['nombre']
+        constraints         = [
+            models.UniqueConstraint(fields=['codigo'], condition=Q(deleted_at__isnull=True), name='unique_areasolicitante_codigo_active'),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -190,12 +217,15 @@ class EstadoPlazo(AuditoriaModel):
 
 class TipoPlanilla(AuditoriaModel):
     nombre = models.CharField(max_length=200)
-    codigo = models.CharField(max_length=20, unique=True)
+    codigo = models.CharField(max_length=20)
 
     class Meta:
         verbose_name        = 'Tipo de Planilla'
         verbose_name_plural = 'Tipos de Planilla'
         ordering            = ['nombre']
+        constraints         = [
+            models.UniqueConstraint(fields=['codigo'], condition=Q(deleted_at__isnull=True), name='unique_tipoplanilla_codigo_active'),
+        ]
 
     def __str__(self):
         return self.nombre
@@ -214,13 +244,16 @@ class EstadoDocumentacion(AuditoriaModel):
 
 
 class Documento(AuditoriaModel):
-    codigo      = models.CharField(max_length=20, unique=True)
+    codigo      = models.CharField(max_length=20)
     descripcion = models.CharField(max_length=300)
 
     class Meta:
         verbose_name        = 'Documento'
         verbose_name_plural = 'Documentos'
         ordering            = ['codigo']
+        constraints         = [
+            models.UniqueConstraint(fields=['codigo'], condition=Q(deleted_at__isnull=True), name='unique_documento_codigo_active'),
+        ]
 
     def __str__(self):
         return f"{self.codigo} - {self.descripcion}"

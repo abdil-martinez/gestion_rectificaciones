@@ -6,15 +6,16 @@ import {
   TableRow, TablePagination, Typography, IconButton, Tooltip,
   MenuItem, Select, FormControl, InputLabel, Grid, Stack,
   Checkbox, Dialog, DialogTitle, DialogContent, DialogActions,
-  Alert, CircularProgress, Tabs, Tab, Badge,
+  Alert, CircularProgress, Tabs, Tab,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import VisibilityIcon from '@mui/icons-material/Visibility'
 import DownloadIcon from '@mui/icons-material/Download'
 import SearchIcon from '@mui/icons-material/Search'
 import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn'
-import InboxIcon from '@mui/icons-material/Inbox'
 import ListAltIcon from '@mui/icons-material/ListAlt'
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount'
+import BusinessIcon from '@mui/icons-material/Business'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { getSolicitudes, exportarExcel, cambiarEstado } from '../../api/solicitudes'
@@ -38,7 +39,7 @@ const ESTADOS = [
   { value: 'ANU',  label: 'Anulado' },
 ]
 
-const showBandejaTab = (rol) => ['ADMIN', 'SUPER', 'ANALIST'].includes(rol)
+const showBandejaTab = (rol) => rol === 'ANALIST'
 
 export default function SolicitudList() {
   const navigate       = useNavigate()
@@ -46,8 +47,7 @@ export default function SolicitudList() {
   const { user }       = useAuthStore()
   const canBulkAssign  = ['ADMIN', 'SUPER'].includes(user?.rol)
 
-  // Pestaña activa: 0 = todas, 1 = mi bandeja
-  const [activeTab, setActiveTab] = useState(user?.rol === 'ANALIST' ? 1 : 0)
+  const [activeTab, setActiveTab] = useState(0)
 
   const [page, setPage]             = useState(0)
   const [rowsPerPage]               = useState(20)
@@ -58,6 +58,7 @@ export default function SolicitudList() {
   const [fechaHasta, setFechaHasta] = useState('')
   const [tipoRegional, setTipoRegional] = useState('')
   const [regional, setRegional]         = useState('')
+  const [agencia, setAgencia]           = useState('')
   const [exportLoading, setExportLoading] = useState(false)
 
   // Selección masiva
@@ -68,31 +69,30 @@ export default function SolicitudList() {
   const [assigning, setAssigning]           = useState(false)
   const [tipoRegionalBulk, setTipoRegionalBulk] = useState('')
 
-  const isBandeja = activeTab === 1
+  const isAnalist = user?.rol === 'ANALIST'
 
   const params = {
     page:                    page + 1,
-    search:                  search       || undefined,
-    estado:                  estado       || undefined,
-    prioridad:               prioridad    || undefined,
-    regional:                regional     || undefined,
-    regional__tipo_regional: tipoRegional || undefined,
-    fecha_desde:             fechaDesde   || undefined,
-    fecha_hasta:             fechaHasta   || undefined,
-    ...(isBandeja ? { mi_bandeja: 'true' } : {}),
+    search:                  search    || undefined,
+    estado:                  estado    || undefined,
+    prioridad:               prioridad || undefined,
+    fecha_desde:             fechaDesde || undefined,
+    fecha_hasta:             fechaHasta || undefined,
+    // Filtros de regional: el manual tiene precedencia; si no, aplicar default por tab
+    regional__tipo_regional: tipoRegional
+      || (isAnalist && activeTab === 0 ? user?.tipo_regional : undefined)
+      || undefined,
+    regional: regional
+      || (isAnalist && activeTab === 1 ? user?.regional : undefined)
+      || undefined,
+    agencia:  agencia || undefined,
+    // Todos los tabs del analista bypasean el filtro de bandeja propia
+    ...(isAnalist ? { todas: 'true' } : {}),
   }
 
   const { data, isLoading } = useQuery({
     queryKey: ['solicitudes', params],
     queryFn:  () => getSolicitudes(params).then((r) => r.data),
-  })
-
-  // Conteo de mi bandeja para el badge
-  const { data: bandejaData } = useQuery({
-    queryKey: ['solicitudes-bandeja-count'],
-    queryFn:  () => getSolicitudes({ mi_bandeja: 'true', page: 1 }).then((r) => r.data),
-    enabled:  showBandejaTab(user?.rol),
-    refetchInterval: 60_000,
   })
 
   const { data: usuariosData } = useQuery({
@@ -114,6 +114,11 @@ export default function SolicitudList() {
     queryFn:  () => catalogosApi.regionales.getAll(
       tipoRegional ? { tipo_regional: tipoRegional } : {}
     ).then((r) => r.data.results || r.data),
+  })
+  const { data: agenciasData = [] } = useQuery({
+    queryKey: ['agencias-filter', regional],
+    queryFn:  () => catalogosApi.agencias.getAll({ regional }).then((r) => r.data.results || r.data),
+    enabled:  !!regional,
   })
 
   const rows = data?.results || []
@@ -210,24 +215,27 @@ export default function SolicitudList() {
             <Tab
               icon={<ListAltIcon sx={{ fontSize: 18 }} />}
               iconPosition="start"
-              label={user?.rol === 'ANALIST' ? 'Asignadas a mí' : 'Todas las solicitudes'}
+              label={isAnalist
+                ? (user?.tipo_regional_nombre ? `Solicitudes ${user.tipo_regional_nombre}` : 'Mi Tipo de Regional')
+                : 'Todas las solicitudes'}
               sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
             />
-            <Tab
-              icon={<InboxIcon sx={{ fontSize: 18 }} />}
-              iconPosition="start"
-              label={
-                <Badge
-                  badgeContent={bandejaData?.count || 0}
-                  color="warning"
-                  max={99}
-                  sx={{ '& .MuiBadge-badge': { fontSize: '0.65rem', minWidth: 18, height: 18 } }}
-                >
-                  <Box sx={{ pr: bandejaData?.count ? 1.5 : 0 }}>Mi Bandeja</Box>
-                </Badge>
-              }
-              sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
-            />
+            {isAnalist && (
+              <Tab
+                icon={<BusinessIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label={user?.regional_nombre ? `Solicitudes ${user.regional_nombre}` : 'Mi Regional'}
+                sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+              />
+            )}
+            {isAnalist && (
+              <Tab
+                icon={<SupervisorAccountIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Todas las solicitudes"
+                sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+              />
+            )}
           </Tabs>
         </Box>
       )}
@@ -265,7 +273,7 @@ export default function SolicitudList() {
             <Grid item xs={6} sm={2} md={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Tipo Regional</InputLabel>
-                <Select value={tipoRegional} label="Tipo Regional" onChange={(e) => { setTipoRegional(e.target.value); setRegional(''); setPage(0) }}>
+                <Select value={tipoRegional} label="Tipo Regional" onChange={(e) => { setTipoRegional(e.target.value); setRegional(''); setAgencia(''); setPage(0) }}>
                   <MenuItem value="">Todos</MenuItem>
                   {tiposRegionalData.map((t) => <MenuItem key={t.id} value={t.id}>{t.nombre}</MenuItem>)}
                 </Select>
@@ -274,9 +282,18 @@ export default function SolicitudList() {
             <Grid item xs={6} sm={2} md={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Regional</InputLabel>
-                <Select value={regional} label="Regional" onChange={(e) => { setRegional(e.target.value); setPage(0) }}>
+                <Select value={regional} label="Regional" onChange={(e) => { setRegional(e.target.value); setAgencia(''); setPage(0) }}>
                   <MenuItem value="">Todas</MenuItem>
                   {regionalesData.map((r) => <MenuItem key={r.id} value={r.id}>{r.nombre}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={6} sm={2} md={2}>
+              <FormControl fullWidth size="small" disabled={!regional}>
+                <InputLabel>Agencia</InputLabel>
+                <Select value={agencia} label="Agencia" onChange={(e) => { setAgencia(e.target.value); setPage(0) }}>
+                  <MenuItem value="">Todas</MenuItem>
+                  {agenciasData.map((a) => <MenuItem key={a.id} value={a.id}>{a.nombre}</MenuItem>)}
                 </Select>
               </FormControl>
             </Grid>
@@ -290,19 +307,20 @@ export default function SolicitudList() {
             </Grid>
             <Grid item xs={12} sm={2} md={1}>
               <Button fullWidth variant="outlined" size="small"
-                onClick={() => { setSearch(''); setEstado(''); setPrioridad(''); setTipoRegional(''); setRegional(''); setFechaDesde(''); setFechaHasta(''); setPage(0); setSelected([]) }}>
+                onClick={() => { setSearch(''); setEstado(''); setPrioridad(''); setTipoRegional(''); setRegional(''); setAgencia(''); setFechaDesde(''); setFechaHasta(''); setPage(0); setSelected([]) }}>
                 Limpiar
               </Button>
             </Grid>
           </Grid>
           {/* Chips de filtros activos */}
-          {(search || estado || prioridad || tipoRegional || regional || fechaDesde || fechaHasta) && (
+          {(search || estado || prioridad || tipoRegional || regional || agencia || fechaDesde || fechaHasta) && (
             <Box sx={{ mt: 1.5, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
               {search       && <Chip size="small" label={`Búsqueda: "${search}"`}     onDelete={() => { setSearch('');       setPage(0) }} />}
               {estado       && <Chip size="small" label={`Estado: ${ESTADOS.find((e) => e.value === estado)?.label || estado}`} onDelete={() => { setEstado('');       setPage(0) }} />}
               {prioridad    && <Chip size="small" label={`Prioridad: ${prioridad}`}   onDelete={() => { setPrioridad('');    setPage(0) }} />}
-              {tipoRegional && <Chip size="small" label={`Tipo Regional: ${tiposRegionalData.find((t) => t.id === Number(tipoRegional))?.nombre || tipoRegional}`} onDelete={() => { setTipoRegional(''); setRegional(''); setPage(0) }} />}
-              {regional     && <Chip size="small" label={`Regional: ${regionalesData.find((r) => r.id === Number(regional))?.nombre || regional}`} onDelete={() => { setRegional('');     setPage(0) }} />}
+              {tipoRegional && <Chip size="small" label={`Tipo Regional: ${tiposRegionalData.find((t) => t.id === Number(tipoRegional))?.nombre || tipoRegional}`} onDelete={() => { setTipoRegional(''); setRegional(''); setAgencia(''); setPage(0) }} />}
+              {regional     && <Chip size="small" label={`Regional: ${regionalesData.find((r) => r.id === Number(regional))?.nombre || regional}`} onDelete={() => { setRegional(''); setAgencia(''); setPage(0) }} />}
+              {agencia      && <Chip size="small" label={`Agencia: ${agenciasData.find((a) => a.id === Number(agencia))?.nombre || agencia}`} onDelete={() => { setAgencia(''); setPage(0) }} />}
               {fechaDesde   && <Chip size="small" label={`Desde: ${fechaDesde}`}      onDelete={() => { setFechaDesde('');   setPage(0) }} />}
               {fechaHasta   && <Chip size="small" label={`Hasta: ${fechaHasta}`}      onDelete={() => { setFechaHasta('');   setPage(0) }} />}
             </Box>
@@ -351,9 +369,11 @@ export default function SolicitudList() {
                     <TableCell>Tipo Causal</TableCell>
                     <TableCell>Tipo Regional</TableCell>
                     <TableCell>Regional</TableCell>
+                    <TableCell>Agencia</TableCell>
                     <TableCell>Estado</TableCell>
                     <TableCell>Prioridad</TableCell>
                     <TableCell>Analista</TableCell>
+                    <TableCell>Creador</TableCell>
                     <TableCell>Asignado por</TableCell>
                     <TableCell>Fecha</TableCell>
                     <TableCell align="center">Acciones</TableCell>
@@ -362,10 +382,12 @@ export default function SolicitudList() {
                 <TableBody>
                   {rows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={canBulkAssign ? 14 : 13} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                        {isBandeja
-                          ? 'No tiene solicitudes pendientes en su bandeja.'
-                          : 'No se encontraron solicitudes con los filtros aplicados.'}
+                      <TableCell colSpan={canBulkAssign ? 16 : 15} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                        {isAnalist && activeTab === 0
+                          ? 'No se encontraron solicitudes en su tipo de regional.'
+                          : isAnalist && activeTab === 1
+                            ? 'No se encontraron solicitudes en su agencia.'
+                            : 'No se encontraron solicitudes con los filtros aplicados.'}
                       </TableCell>
                     </TableRow>
                   )}
@@ -404,10 +426,16 @@ export default function SolicitudList() {
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">{sol.regional_nombre || '—'}</Typography>
                         </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">{sol.agencia_nombre || '—'}</Typography>
+                        </TableCell>
                         <TableCell><StatusChip estado={sol.estado} /></TableCell>
                         <TableCell><PrioridadChip prioridad={sol.prioridad} /></TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">{sol.analista_nombre || '—'}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">{sol.usuario_creador_nombre || '—'}</Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">{sol.asignado_por_nombre || '—'}</Typography>

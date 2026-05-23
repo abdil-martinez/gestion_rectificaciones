@@ -4,17 +4,17 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .mixins import SoftDeleteMixin
 from .models import (
-    TipoSolicitud, Administradora, TipoCausal, Unidad, TipoRegional,
+    TipoSolicitud, Administradora, CategoriaCausal, TipoCausal, Unidad, TipoRegional,
     FormularioContribucion, TipoIdentificacion, AreaSolicitante,
     EstadoPlazo, TipoPlanilla, EstadoDocumentacion, Documento,
     Regional, Agencia,
 )
 from .serializers import (
-    TipoSolicitudSerializer, AdministradoraSerializer, TipoCausalSerializer,
-    UnidadSerializer, TipoRegionalSerializer, FormularioContribucionSerializer,
-    TipoIdentificacionSerializer, AreaSolicitanteSerializer, EstadoPlazoSerializer,
-    TipoPlanillaSerializer, EstadoDocumentacionSerializer, DocumentoSerializer,
-    RegionalSerializer, AgenciaSerializer,
+    TipoSolicitudSerializer, AdministradoraSerializer, CategoriaCausalSerializer,
+    TipoCausalSerializer, UnidadSerializer, TipoRegionalSerializer,
+    FormularioContribucionSerializer, TipoIdentificacionSerializer,
+    AreaSolicitanteSerializer, EstadoPlazoSerializer, TipoPlanillaSerializer,
+    EstadoDocumentacionSerializer, DocumentoSerializer, RegionalSerializer, AgenciaSerializer,
 )
 
 
@@ -32,10 +32,26 @@ class BaseCatalogoViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     def perform_create(self, serializer):
-        serializer.save(usuario_creador=self.request.user)
+        from django.db import IntegrityError
+        from rest_framework.exceptions import ValidationError
+        try:
+            serializer.save(usuario_creador=self.request.user)
+        except IntegrityError as exc:
+            msg = str(exc)
+            if 'unique' in msg.lower() or 'unicidad' in msg.lower() or 'duplicada' in msg.lower():
+                raise ValidationError({'detail': 'Ya existe un registro con el mismo código. Verifique los datos e intente nuevamente.'})
+            raise ValidationError({'detail': str(exc)})
 
     def perform_update(self, serializer):
-        serializer.save(usuario_modificador=self.request.user)
+        from django.db import IntegrityError
+        from rest_framework.exceptions import ValidationError
+        try:
+            serializer.save(usuario_modificador=self.request.user)
+        except IntegrityError as exc:
+            msg = str(exc)
+            if 'unique' in msg.lower() or 'unicidad' in msg.lower() or 'duplicada' in msg.lower():
+                raise ValidationError({'detail': 'Ya existe un registro con el mismo código. Verifique los datos e intente nuevamente.'})
+            raise ValidationError({'detail': str(exc)})
 
 
 class TipoSolicitudViewSet(BaseCatalogoViewSet):
@@ -52,12 +68,19 @@ class AdministradoraViewSet(BaseCatalogoViewSet):
     ordering_fields  = ['nombre', 'codigo', 'created_at']
 
 
+class CategoriaCausalViewSet(BaseCatalogoViewSet):
+    queryset         = CategoriaCausal.objects.all()
+    serializer_class = CategoriaCausalSerializer
+    search_fields    = ['nombre']
+    ordering_fields  = ['nombre', 'created_at']
+
+
 class TipoCausalViewSet(BaseCatalogoViewSet):
-    queryset         = TipoCausal.objects.all()
+    queryset         = TipoCausal.objects.select_related('tipo').all()
     serializer_class = TipoCausalSerializer
     filterset_fields = ['tipo']
     search_fields    = ['nombre']
-    ordering_fields  = ['nombre', 'tipo', 'created_at']
+    ordering_fields  = ['nombre', 'tipo__nombre', 'created_at']
 
 
 class UnidadViewSet(BaseCatalogoViewSet):

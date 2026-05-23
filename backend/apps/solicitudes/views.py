@@ -28,7 +28,7 @@ def get_client_ip(request):
 class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends    = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields   = ['estado', 'regional', 'regional__tipo_regional', 'analista_asignado', 'prioridad', 'tipo_causal']
+    filterset_fields   = ['estado', 'regional', 'agencia', 'regional__tipo_regional', 'analista_asignado', 'prioridad', 'tipo_causal']
     search_fields      = ['numero_solicitud', 'asegurado__nombre', 'asegurado__cedula',
                           'asegurado__ap_paterno', 'asegurado__ap_materno']
     ordering_fields    = ['created_at', 'fecha_recepcion', 'fecha_limite', 'numero_solicitud', 'estado']
@@ -38,8 +38,9 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         from django.db.models import Q
         qs = Solicitud.objects.select_related(
             'asegurado', 'empleador', 'solicitante',
-            'tipo_solicitud', 'tipo_causal', 'regional',
-            'analista_asignado', 'area_solicitante',
+            'tipo_solicitud', 'tipo_causal', 'regional', 'agencia',
+            'analista_asignado', 'asignado_por', 'usuario_creador',
+            'area_solicitante',
         )
         user = self.request.user
         fecha_desde  = self.request.query_params.get('fecha_desde')
@@ -51,15 +52,34 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         if fecha_hasta:
             qs = qs.filter(created_at__date__lte=fecha_hasta)
 
+        exclude_estados = self.request.query_params.get('exclude_estados')
+        if exclude_estados:
+            qs = qs.exclude(estado__in=[e.strip() for e in exclude_estados.split(',')])
+
+        todas            = self.request.query_params.get('todas') == 'true'
+        analista_bandeja = self.request.query_params.get('analista_bandeja') == 'true'
+
         if mi_bandeja:
             qs = qs.filter(
                 Q(usuario_creador=user, estado__in=['BOR', 'PEND', 'DEV', 'APRO', 'RECH'])
             )
-        elif user.rol == 'ANALIST':
+        elif analista_bandeja:
+            # Bandeja personal del analista:
+            # - trabajo activo (asignado a él, en cualquier estado operativo)
+            # - solicitudes procesadas/devueltas/anuladas donde él es el creador
             qs = qs.filter(
-                Q(analista_asignado=user) |
-                Q(usuario_creador=user, estado__in=['BOR', 'PEND', 'APRO', 'RECH'])
+                Q(analista_asignado=user, estado__in=['ASIG', 'REV', 'DEV', 'APRO', 'RECH', 'ANU']) |
+                Q(usuario_creador=user, estado__in=['DEV', 'APRO', 'RECH', 'ANU'])
             )
+        elif user.rol == 'ANALIST' and not todas:
+            if self.request.query_params.get('analista_asignado'):
+                pass  # DjangoFilterBackend aplica analista_asignado=id directamente
+            else:
+                # El creador siempre puede ver sus propias solicitudes en cualquier estado
+                qs = qs.filter(
+                    Q(analista_asignado=user) |
+                    Q(usuario_creador=user)
+                )
         return qs
 
     def get_serializer_class(self):
@@ -157,6 +177,51 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         #     enviar_notificacion_solicitud(solicitud)
 
         return Response(SolicitudDetailSerializer(solicitud, context={'request': request}).data)
+
+    @action(detail=False, methods=['post'], url_path='reasignar')
+    def reasignar(self, request):
+        if request.user.rol not in ('ADMIN', 'SUPER'):
+            return Response({'detail': 'Sin permiso para reasignar.'}, status=status.HTTP_403_FORBIDDEN)
+
+        ids              = request.data.get('ids', [])
+        nuevo_analista_id = request.data.get('analista_id')
+        comentario       = request.data.get('comentario', '')
+
+        if not ids or not nuevo_analista_id:
+            return Response({'detail': 'Debe indicar ids y analista_id.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        from apps.accounts.models import CustomUser
+        try:
+            nuevo_analista = CustomUser.objects.get(pk=nuevo_analista_id, is_active=True)
+        except CustomUser.DoesNotExist:
+            return Response({'detail': 'Analista destino no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        qs    = Solicitud.objects.filter(pk__in=ids, estado__in=['ASIG', 'REV']).select_related('analista_asignado')
+        ip    = get_client_ip(request)
+        count = 0
+        nuevo_nombre = nuevo_analista.get_full_name() or nuevo_analista.username
+
+        for sol in qs:
+            anterior_nombre = (
+                sol.analista_asignado.get_full_name() or sol.analista_asignado.username
+                if sol.analista_asignado else 'Sin asignar'
+            )
+            sol.analista_asignado   = nuevo_analista
+            sol.asignado_por        = request.user
+            sol.usuario_modificador = request.user
+            sol.save()
+            registrar_bitacora(
+                solicitud=sol,
+                usuario=request.user,
+                estado_anterior=sol.estado,
+                estado_nuevo=sol.estado,
+                accion='REASIG',
+                comentario=comentario or f'Reasignado de {anterior_nombre} a {nuevo_nombre}',
+                ip=ip,
+            )
+            count += 1
+
+        return Response({'detail': f'{count} solicitud(es) reasignada(s).', 'count': count})
 
     @action(detail=True, methods=['get'], url_path='bitacora')
     def bitacora(self, request, pk=None):

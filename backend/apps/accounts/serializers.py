@@ -8,6 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
     tipo_regional_nombre = serializers.CharField(source='tipo_regional.nombre', read_only=True)
     unidad_nombre        = serializers.CharField(source='unidad.nombre', read_only=True)
     agencia_nombre       = serializers.CharField(source='agencia.nombre', read_only=True)
+    agencia_regional_id  = serializers.SerializerMethodField()
     nombre_completo      = serializers.SerializerMethodField()
 
     class Meta:
@@ -18,11 +19,16 @@ class UserSerializer(serializers.ModelSerializer):
             'regional', 'regional_id', 'regional_nombre',
             'tipo_regional', 'tipo_regional_id', 'tipo_regional_nombre',
             'unidad', 'unidad_id', 'unidad_nombre',
-            'agencia', 'agencia_id', 'agencia_nombre',
+            'agencia', 'agencia_id', 'agencia_nombre', 'agencia_regional_id',
             'telefono', 'avatar', 'is_active', 'date_joined',
             'nombre_completo',
         ]
         read_only_fields = ['id', 'date_joined']
+
+    def get_agencia_regional_id(self, obj):
+        if obj.agencia_id:
+            return obj.agencia.regional_id
+        return None
 
     def get_nombre_completo(self, obj):
         return obj.nombre_completo

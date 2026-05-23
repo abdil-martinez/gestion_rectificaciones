@@ -4,6 +4,7 @@ import {
   Box, List, ListItemButton, ListItemIcon, ListItemText,
   Typography, Divider, Avatar,
 } from '@mui/material'
+import { useTheme } from '@mui/material/styles'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import InboxIcon from '@mui/icons-material/Inbox'
@@ -11,7 +12,7 @@ import BarChartIcon from '@mui/icons-material/BarChart'
 import SettingsIcon from '@mui/icons-material/Settings'
 import PeopleIcon from '@mui/icons-material/People'
 import { useAuthStore } from '../../store/authStore'
-import { ORO, NAVY } from '../../theme'
+import { ORO, NAVY, BRAND_RED, BRAND_BLUE, BRAND_INDIGO } from '../../theme'
 
 const NAV_ITEMS = [
   { label: 'Dashboard',      icon: <DashboardIcon />,  path: '/',           roles: ['ADMIN','SUPER','ANALIST','CONSULTA'] },
@@ -27,6 +28,16 @@ export default function Sidebar({ drawerWidth = 240 }) {
   const navigate  = useNavigate()
   const location  = useLocation()
   const { user }  = useAuthStore()
+  const theme     = useTheme()
+  const isDark    = theme.palette.mode === 'dark'
+
+  const accent         = isDark ? ORO        : BRAND_BLUE
+  const accentContrast = isDark ? NAVY       : '#ffffff'
+  const logoTextColor  = isDark ? ORO        : BRAND_BLUE
+  const navText        = isDark ? 'text.primary' : '#6B7280'
+  const navTextActive  = isDark ? ORO        : BRAND_INDIGO
+  const dividerColor   = isDark ? '#2A3D6B'  : '#D0D4E0'
+  const borderColor    = isDark ? `${ORO}33` : '#D0D4E0'
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/'
@@ -38,51 +49,43 @@ export default function Sidebar({ drawerWidth = 240 }) {
   )
 
   return (
-    <Box
-      sx={{
-        width: drawerWidth,
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}
-    >
+    <Box sx={{ width: drawerWidth, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
       {/* Logo */}
-      <Box
-        sx={{
-          px: 2.5,
-          py: 3,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          borderBottom: `1px solid ${ORO}33`,
-        }}
-      >
-        <Box
-          sx={{
-            width: 42,
-            height: 42,
-            borderRadius: 2,
-            background: `linear-gradient(135deg, ${ORO}, #96783C)`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 800,
-            fontSize: 18,
-            color: NAVY,
-            flexShrink: 0,
-          }}
-        >
+      <Box sx={{
+        px: 2.5, py: 3,
+        display: 'flex', alignItems: 'center', gap: 1.5,
+        borderBottom: `1px solid ${borderColor}`,
+      }}>
+        <Box sx={{
+          width: 42, height: 42, borderRadius: 2,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontWeight: 800, fontSize: 18, color: accentContrast, flexShrink: 0,
+          background: isDark
+            ? `linear-gradient(135deg, ${ORO}, #96783C)`
+            : `linear-gradient(135deg, ${BRAND_RED}, #B71C1C)`,
+          boxShadow: isDark ? `0 0 16px ${ORO}55` : '0 2px 8px rgba(229,57,53,0.4)',
+          '@keyframes logoShimmer': {
+            '0%':   { backgroundPosition: '0% 50%' },
+            '50%':  { backgroundPosition: '100% 50%' },
+            '100%': { backgroundPosition: '0% 50%' },
+          },
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+          '&:hover': {
+            transform: 'rotate(8deg) scale(1.1)',
+            boxShadow: isDark ? `0 0 24px ${ORO}88` : '0 4px 16px rgba(229,57,53,0.6)',
+          },
+        }}>
           G
         </Box>
         <Box>
-          <Typography
-            variant="subtitle1"
-            sx={{ fontWeight: 800, color: ORO, lineHeight: 1.1 }}
-          >
+          <Typography variant="subtitle1" sx={{
+            fontWeight: 800, color: logoTextColor, lineHeight: 1.1,
+            textShadow: isDark ? `0 0 12px ${ORO}66` : 'none',
+          }}>
             GNARC
           </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+          <Typography variant="caption" sx={{ lineHeight: 1, color: isDark ? 'text.secondary' : '#94A3B8' }}>
             Rectificaciones
           </Typography>
         </Box>
@@ -93,28 +96,59 @@ export default function Sidebar({ drawerWidth = 240 }) {
         <List dense disablePadding>
           {visibleItems.map((item, idx) =>
             item.divider ? (
-              <Divider key={`div-${idx}`} sx={{ my: 1, borderColor: '#2A3D6B' }} />
+              <Divider key={`div-${idx}`} sx={{ my: 1, borderColor: dividerColor }} />
             ) : (
               <ListItemButton
                 key={item.path}
                 selected={isActive(item.path)}
                 onClick={() => navigate(item.path)}
-                sx={{ mb: 0.3, py: 1, px: 1.5 }}
+                sx={{
+                  mb: 0.3, py: 1, px: 1.5,
+                  position: 'relative', overflow: 'hidden',
+                  transition: 'all 0.2s ease',
+                  '&::before': isActive(item.path) && isDark ? {
+                    content: '""',
+                    position: 'absolute', left: 0, top: '15%',
+                    height: '70%', width: 3, borderRadius: '0 3px 3px 0',
+                    background: `linear-gradient(180deg, ${ORO}cc, ${ORO})`,
+                    boxShadow: `0 0 10px ${ORO}99`,
+                    '@keyframes barGlow': {
+                      '0%, 100%': { opacity: 0.7, boxShadow: `0 0 6px ${ORO}66` },
+                      '50%':      { opacity: 1,   boxShadow: `0 0 14px ${ORO}cc` },
+                    },
+                    animation: 'barGlow 2s ease-in-out infinite',
+                  } : {},
+                  '&:hover': {
+                    backgroundColor: isDark ? `${ORO}12` : '#F0F2F9',
+                    '& .nav-icon': { transform: 'scale(1.2) rotate(-5deg)' },
+                    '& .nav-label': { letterSpacing: '0.01em' },
+                  },
+                  '&.Mui-selected': {
+                    backgroundColor: isDark ? `${ORO}18` : '#EAEDF5',
+                    backdropFilter: 'blur(4px)',
+                    '&:hover': { backgroundColor: isDark ? `${ORO}28` : '#E0E4F4' },
+                  },
+                }}
               >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 36,
-                    color: isActive(item.path) ? ORO : 'text.secondary',
-                  }}
-                >
+                <ListItemIcon sx={{
+                  minWidth: 36,
+                  color: isActive(item.path) ? navTextActive : (isDark ? 'text.secondary' : '#9CA3AF'),
+                  '& svg': {
+                    className: 'nav-icon',
+                    transition: 'transform 0.25s ease',
+                    filter: isActive(item.path) && isDark ? `drop-shadow(0 0 4px ${ORO}99)` : 'none',
+                  },
+                }}>
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
                   primary={item.label}
                   primaryTypographyProps={{
+                    className: 'nav-label',
                     fontSize: '0.875rem',
                     fontWeight: isActive(item.path) ? 700 : 400,
-                    color: isActive(item.path) ? ORO : 'text.primary',
+                    color: isActive(item.path) ? navTextActive : navText,
+                    transition: 'all 0.2s ease',
                   }}
                 />
               </ListItemButton>
@@ -124,33 +158,41 @@ export default function Sidebar({ drawerWidth = 240 }) {
       </Box>
 
       {/* User footer */}
-      <Box
-        sx={{
-          p: 2,
-          borderTop: `1px solid ${ORO}22`,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-        }}
-      >
+      <Box sx={{
+        p: 2,
+        borderTop: `1px solid ${borderColor}`,
+        display: 'flex', alignItems: 'center', gap: 1.5,
+        background: isDark ? `linear-gradient(0deg, ${ORO}08 0%, transparent 100%)` : 'transparent',
+      }}>
         <Avatar
           src={user?.avatar || undefined}
-          sx={{ width: 36, height: 36, bgcolor: ORO, color: NAVY, fontSize: 14, fontWeight: 700 }}
+          sx={{
+            width: 36, height: 36,
+            bgcolor: accent, color: accentContrast,
+            fontSize: 14, fontWeight: 700,
+            boxShadow: isDark ? `0 0 0 2px ${ORO}44, 0 0 12px ${ORO}33` : '0 0 0 2px #1A73E844',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+              boxShadow: isDark ? `0 0 0 3px ${ORO}88, 0 0 20px ${ORO}55` : '0 0 0 3px #1A73E888',
+              transform: 'scale(1.1)',
+            },
+          }}
         >
           {user?.first_name?.[0] || user?.username?.[0] || '?'}
         </Avatar>
         <Box sx={{ minWidth: 0 }}>
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
-          >
+          <Typography variant="body2" sx={{
+            fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            color: isDark ? 'text.primary' : '#1A1A2E',
+          }}>
             {user?.nombre_completo || user?.username}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" sx={{ color: isDark ? 'text.secondary' : '#6B7280' }}>
             {user?.rol}
           </Typography>
         </Box>
       </Box>
+
     </Box>
   )
 }

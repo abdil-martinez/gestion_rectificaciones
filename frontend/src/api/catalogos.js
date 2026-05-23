@@ -10,6 +10,7 @@ const makeEndpoint = (resource) => ({
 
 export const tipoSolicitud          = makeEndpoint('tipo-solicitud')
 export const administradoras        = makeEndpoint('administradoras')
+export const categoriaCausal        = makeEndpoint('categoria-causal')
 export const tipoCausal             = makeEndpoint('tipo-causal')
 export const unidades               = makeEndpoint('unidades')
 export const tipoRegional           = makeEndpoint('tipo-regional')
@@ -24,7 +25,7 @@ export const regionales             = makeEndpoint('regionales')
 export const agencias               = makeEndpoint('agencias')
 
 export default {
-  tipoSolicitud, administradoras, tipoCausal, unidades, tipoRegional,
+  tipoSolicitud, administradoras, categoriaCausal, tipoCausal, unidades, tipoRegional,
   formularioContribucion, tipoIdentificacion, areaSolicitante,
   estadoPlazo, tipoPlanilla, estadoDocumentacion, documentos,
   regionales, agencias,

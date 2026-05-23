@@ -307,6 +307,11 @@ function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc }) {
   )
 }
 
+const NOTIF_CARDS = [
+  { tipo: 'ase', accent: '#4C9FE8', label: 'Notificación Asegurado',  Icon: PersonIcon },
+  { tipo: 'emp', accent: '#4CAF50', label: 'Notificación Empleador',   Icon: BusinessIcon },
+]
+
 /* ── Panel principal ────────────────────────────────────────────────── */
 export default function NotificacionesPanel({ sol, formularios }) {
   const solId = sol?.id
@@ -319,19 +324,52 @@ export default function NotificacionesPanel({ sol, formularios }) {
   })
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <NotificationsIcon sx={{ color: ORO }} />
-        <Typography variant="subtitle1" fontWeight={700} sx={{ color: ORO }}>
+    <Box sx={{
+      border: '1px solid',
+      borderColor: `${ORO}44`,
+      borderTop: `3px solid ${ORO}`,
+      borderRadius: 2,
+      overflow: 'hidden',
+    }}>
+      {/* Encabezado externo */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.5, py: 1, bgcolor: `${ORO}10`, borderBottom: `1px solid ${ORO}33` }}>
+        <NotificationsIcon sx={{ fontSize: 15, color: ORO }} />
+        <Typography variant="caption" fontWeight={700} sx={{ color: ORO, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           Notificaciones
         </Typography>
       </Box>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Genere la notificación y adjunte el documento firmado.
-      </Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-        <NotifRow tipo="ase" sol={sol} formularios={formularios} solId={solId} notifDocs={notifDocs} qc={qc} />
-        <NotifRow tipo="emp" sol={sol} formularios={formularios} solId={solId} notifDocs={notifDocs} qc={qc} />
+
+      <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        <Typography variant="body2" color="text.secondary">
+          Genere la notificación y adjunte el documento firmado.
+        </Typography>
+
+        {NOTIF_CARDS.map(({ tipo, accent, label, Icon }) => (
+          <Box
+            key={tipo}
+            sx={{
+              border: '1px solid',
+              borderColor: `${accent}44`,
+              borderLeft: `4px solid ${accent}`,
+              borderRadius: 1.5,
+              p: 1.2,
+              bgcolor: `${accent}0C`,
+              transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
+              '&:hover': {
+                borderColor: `${accent}88`,
+                boxShadow: `0 0 0 3px ${accent}22, 0 2px 10px ${accent}18`,
+              },
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.7, mb: 1 }}>
+              <Icon sx={{ fontSize: 15, color: accent }} />
+              <Typography variant="caption" fontWeight={700} sx={{ color: accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {label}
+              </Typography>
+            </Box>
+            <NotifRow tipo={tipo} sol={sol} formularios={formularios} solId={solId} notifDocs={notifDocs} qc={qc} />
+          </Box>
+        ))}
       </Box>
     </Box>
   )
