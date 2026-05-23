@@ -86,8 +86,10 @@ export default function SolicitudList() {
       || (isAnalist && activeTab === 1 ? user?.regional : undefined)
       || undefined,
     agencia:  agencia || undefined,
-    // Todos los tabs del analista bypasean el filtro de bandeja propia
-    ...(isAnalist ? { todas: 'true' } : {}),
+    // Tab 0 y 1 del analista: vista pública del tipo_regional/regional (todas=true sin filtro personal)
+    // Tab 2 del analista: solo sus solicitudes (analista_bandeja=true)
+    ...(isAnalist && activeTab !== 2 ? { todas: 'true' } : {}),
+    ...(isAnalist && activeTab === 2 ? { analista_bandeja: 'true' } : {}),
   }
 
   const { data, isLoading } = useQuery({
@@ -232,7 +234,7 @@ export default function SolicitudList() {
               <Tab
                 icon={<SupervisorAccountIcon sx={{ fontSize: 18 }} />}
                 iconPosition="start"
-                label="Todas las solicitudes"
+                label="Mis Solicitudes"
                 sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
               />
             )}
