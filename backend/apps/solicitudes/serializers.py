@@ -180,7 +180,7 @@ class SolicitudCreateSerializer(serializers.ModelSerializer):
         fields = [
             'tipo_solicitud', 'tipo_causal', 'administradora', 'regional', 'agencia',
             'area_solicitante', 'prioridad',
-            'detalle_causal', 'observaciones', 'fecha_recepcion', 'fecha_limite',
+            'detalle_causal', 'observaciones', 'fecha_recepcion',
             'asegurado', 'empleador', 'solicitante',
             'asegurado_data', 'empleador_data',
         ]
@@ -190,6 +190,7 @@ class SolicitudCreateSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
+        import datetime
         asegurado_data = validated_data.pop('asegurado_data', None)
         empleador_data = validated_data.pop('empleador_data', None)
 
@@ -203,5 +204,8 @@ class SolicitudCreateSerializer(serializers.ModelSerializer):
         if empleador_data and not validated_data.get('empleador'):
             empleador = Empleador.objects.create(**empleador_data)
             validated_data['empleador'] = empleador
+
+        base = validated_data.get('fecha_recepcion') or datetime.date.today()
+        validated_data['fecha_limite'] = base + datetime.timedelta(days=30)
 
         return super().create(validated_data)

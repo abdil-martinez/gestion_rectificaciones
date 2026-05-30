@@ -530,17 +530,10 @@ function StepDetalle({ control, errors, setValue, getValues }) {
 
       <FieldGroup title="Fechas y descripción">
         <Grid container spacing={2.5}>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={4}>
             <Controller name="fecha_recepcion" control={control}
               render={({ field }) => (
                 <TextField {...field} fullWidth label="Fecha de Recepción" type="date" InputLabelProps={{ shrink: true }} />
-              )}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <Controller name="fecha_limite" control={control}
-              render={({ field }) => (
-                <TextField {...field} fullWidth label="Fecha Límite" type="date" InputLabelProps={{ shrink: true }} />
               )}
             />
           </Grid>
@@ -1028,7 +1021,6 @@ export default function SolicitudWizard() {
         prioridad:        'NORMAL',
         detalle_causal:   '',
         fecha_recepcion:  '',
-        fecha_limite:     '',
         area_solicitante: '',
         ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'),
       },
@@ -1076,7 +1068,6 @@ export default function SolicitudWizard() {
         administradora:   data.administradora   || undefined,
         area_solicitante: data.area_solicitante || undefined,
         fecha_recepcion:  data.fecha_recepcion  || undefined,
-        fecha_limite:     data.fecha_limite     || undefined,
         asegurado_data: { ...data.asegurado_data, tipo_identificacion: data.asegurado_data?.tipo_identificacion || undefined },
         empleador_data: { ...data.empleador_data, tipo_identificacion: data.empleador_data?.tipo_identificacion || undefined },
       }
