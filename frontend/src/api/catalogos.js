@@ -14,7 +14,6 @@ export const categoriaCausal        = makeEndpoint('categoria-causal')
 export const tipoCausal             = makeEndpoint('tipo-causal')
 export const unidades               = makeEndpoint('unidades')
 export const tipoRegional           = makeEndpoint('tipo-regional')
-export const formularioContribucion = makeEndpoint('formulario-contribucion')
 export const tipoIdentificacion     = makeEndpoint('tipo-identificacion')
 export const areaSolicitante        = makeEndpoint('area-solicitante')
 export const estadoPlazo            = makeEndpoint('estado-plazo')
@@ -26,7 +25,7 @@ export const agencias               = makeEndpoint('agencias')
 
 export default {
   tipoSolicitud, administradoras, categoriaCausal, tipoCausal, unidades, tipoRegional,
-  formularioContribucion, tipoIdentificacion, areaSolicitante,
+  tipoIdentificacion, areaSolicitante,
   estadoPlazo, tipoPlanilla, estadoDocumentacion, documentos,
   regionales, agencias,
 }

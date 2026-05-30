@@ -28,7 +28,6 @@ const CATALOGOS = [
   { key: 'tipoPlanilla',           label: 'Tipos de Planilla',           fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'codigo', label: 'Código', required: true }] },
   { key: 'estadoDocumentacion',    label: 'Estados de Documentación',    fields: [{ name: 'nombre', label: 'Nombre', required: true }] },
   { key: 'documentos',             label: 'Documentos',                  fields: [{ name: 'codigo', label: 'Código', required: true }, { name: 'descripcion', label: 'Descripción', required: true }] },
-  { key: 'formularioContribucion', label: 'Formularios de Contribución', fields: [{ name: 'nombre', label: 'Nombre', required: true }] },
   { key: 'areaSolicitante',        label: 'Áreas Solicitantes',          fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'codigo', label: 'Código', required: true }] },
   { key: 'estadoPlazo',            label: 'Estados de Plazo',            fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'limite_dias', label: 'Días Límite', type: 'number', required: true }] },
   { key: 'tipoRegional',           label: 'Tipos de Regional',           fields: [{ name: 'nombre', label: 'Nombre', required: true }] },
