@@ -976,15 +976,28 @@ export default function SolicitudDetail() {
               <InfoRow label="Fecha de recepción" value={sol.fecha_recepcion ? dayjs(sol.fecha_recepcion).format('DD/MM/YYYY') : null} />
               <InfoRow label="Fecha límite" value={sol.fecha_limite ? dayjs(sol.fecha_limite).format('DD/MM/YYYY') : null} />
               <InfoRow label="Monto total" value={sol.monto_total ? `Bs. ${parseFloat(sol.monto_total).toFixed(2)}` : null} />
-              {sol.detalle_causal && (
-                <Box sx={{ mt: 1.5 }}>
-                  <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase' }}>
-                    Detalle / Observaciones
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 0.5, p: 1.5, bgcolor: '#0F1932', borderRadius: 2 }}>
-                    {sol.detalle_causal}
-                  </Typography>
-                </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Detalle / Observaciones */}
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1.5, color: ORO }}>
+                Detalle / Observaciones
+              </Typography>
+              {sol.detalle_causal ? (
+                <Typography
+                  variant="body2"
+                  sx={{ flex: 1, p: 1.5, bgcolor: '#0F1932', borderRadius: 2, whiteSpace: 'pre-wrap', lineHeight: 1.7 }}
+                >
+                  {sol.detalle_causal}
+                </Typography>
+              ) : (
+                <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                  Sin observaciones registradas.
+                </Typography>
               )}
             </CardContent>
           </Card>
