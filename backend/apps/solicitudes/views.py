@@ -324,6 +324,84 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
+    @action(detail=True, methods=['get'], url_path='formulario-regularizacion')
+    def formulario_regularizacion(self, request, pk=None):
+        import openpyxl, os, copy
+        from decimal import Decimal
+
+        sol = self.get_object()
+        template_path = os.path.join(
+            os.path.dirname(__file__),
+            'templates_xlsx', 'formulario_regularizacion.xlsx'
+        )
+        wb = openpyxl.load_workbook(template_path)
+        ld = wb['LLENAR DATOS']
+
+        # ── Datos generales en LLENAR DATOS fila 3 ──────────────────────────
+        ld['A3'] = sol.fecha_recepcion.strftime('%d/%m/%Y') if sol.fecha_recepcion else ''
+
+        aseg = sol.asegurado
+        if aseg:
+            ld['B3'] = aseg.nombre_completo
+            tipo_id_aseg = aseg.tipo_identificacion.codigo if aseg.tipo_identificacion else ''
+            ld['C3'] = tipo_id_aseg
+            ld['D3'] = aseg.cedula or ''
+            ld['E3'] = aseg.cua or ''
+        else:
+            ld['B3'] = ld['C3'] = ld['D3'] = ld['E3'] = ''
+
+        empl = sol.empleador
+        if empl:
+            ld['F3'] = empl.nombre_razon_social or ''
+            tipo_id_empl = empl.tipo_identificacion.codigo if empl.tipo_identificacion else ''
+            ld['G3'] = tipo_id_empl
+            ld['H3'] = empl.numero_documento_identidad or ''
+        else:
+            ld['F3'] = ld['G3'] = ld['H3'] = ''
+
+        ld['I3'] = sol.detalle_causal or ''
+
+        # ── Periodos (formularios FPC) en FORM1 ─────────────────────────────
+        fs = list(sol.formularios.all().order_by('periodo'))
+        ws1 = wb['FORM1']
+
+        # Mapa: 10 slots → (fila, col_offset) en FORM1
+        # Cada slot ocupa 3 columnas: MES, AÑO, TOTAL_GANADO
+        # Filas de datos exclusión: 29 (slots 0-4) y 31 (slots 5-9)
+        excl_slots = [(29, 2), (29, 5), (29, 8), (29, 11), (29, 14),
+                      (31, 2), (31, 5), (31, 8), (31, 11), (31, 14)]
+
+        for i, form in enumerate(fs[:10]):
+            row, col = excl_slots[i]
+            periodo = str(form.periodo or '')
+            # Soporta formatos: "MM/AAAA", "AAAA-MM", "MM-AAAA"
+            if '/' in periodo:
+                parts = periodo.split('/')
+                mes, anio = (parts[0], parts[1]) if len(parts[0]) <= 2 else (parts[1], parts[0])
+            elif '-' in periodo:
+                parts = periodo.split('-')
+                if len(parts[0]) == 4:
+                    anio, mes = parts[0], parts[1]
+                else:
+                    mes, anio = parts[0], parts[1]
+            else:
+                mes, anio = periodo, ''
+            ws1.cell(row=row, column=col,     value=mes)
+            ws1.cell(row=row, column=col + 1, value=anio)
+            ws1.cell(row=row, column=col + 2, value=float(form.total_ganado or 0))
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        buf.seek(0)
+
+        num = sol.numero_solicitud
+        response = HttpResponse(
+            buf.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="form_regularizacion_{num}.xlsx"'
+        return response
+
 
 class BitacoraViewSet(viewsets.ReadOnlyModelViewSet):
     queryset           = BitacoraSolicitud.objects.select_related('solicitud', 'usuario').order_by('-created_at')

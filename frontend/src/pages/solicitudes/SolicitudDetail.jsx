@@ -8,7 +8,7 @@ import {
   List, ListItem, ListItemText, ListItemIcon,
   FormControl, InputLabel, Select, MenuItem,
   Table, TableHead, TableRow, TableCell, TableBody,
-  Checkbox,
+  Checkbox, Tabs, Tab,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
@@ -17,6 +17,8 @@ import ReplayIcon from '@mui/icons-material/Replay'
 import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import AttachFileIcon from '@mui/icons-material/AttachFile'
+import DownloadIcon from '@mui/icons-material/Download'
+import ArticleIcon from '@mui/icons-material/Article'
 import HistoryIcon from '@mui/icons-material/History'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -337,10 +339,14 @@ function DocumentosRespaldo({ solicitudId }) {
 const NOTIF_KEYS = ['__NOTIF_ASE__', '__NOTIF_EMP__']
 
 function DocsSidebar({ solicitudId, sol }) {
+  const [tab,        setTab]            = useState(0)
   const [pdfLoading, setPdfLoading]     = useState(false)
   const [uploading,  setUploading]      = useState(false)
+  const [xlsxLoading, setXlsxLoading]  = useState(false)
+  const [uploadingForm, setUploadingForm] = useState(false)
   const [descripcion, setDescripcion]   = useState('')
-  const fileRef = useRef(null)
+  const fileRef     = useRef(null)
+  const formFileRef = useRef(null)
   const qc = useQueryClient()
 
   const { data: docsRespaldo = [] } = useQuery({
@@ -420,6 +426,25 @@ function DocsSidebar({ solicitudId, sol }) {
     }
   }
 
+  const handleDescargarXLSX = async () => {
+    setXlsxLoading(true)
+    try {
+      const res = await import('../../api/axios').then(m =>
+        m.default.get(`/solicitudes/solicitudes/${solicitudId}/formulario-regularizacion/`, { responseType: 'blob' })
+      )
+      const url = URL.createObjectURL(new Blob([res.data]))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `form_regularizacion_${sol.numero_solicitud}.xlsx`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      toast.error('Error al descargar el formulario')
+    } finally {
+      setXlsxLoading(false)
+    }
+  }
+
   return (
     <Box sx={{
       border: '1px solid',
@@ -437,6 +462,25 @@ function DocsSidebar({ solicitudId, sol }) {
         </Typography>
       </Box>
 
+      {/* ── Tabs ── */}
+      <Tabs
+        value={tab}
+        onChange={(_, v) => setTab(v)}
+        variant="fullWidth"
+        sx={{
+          minHeight: 34,
+          borderBottom: `1px solid ${ORO}33`,
+          '& .MuiTab-root': { minHeight: 34, fontSize: '0.7rem', fontWeight: 700, color: '#aaa', textTransform: 'none', py: 0.5 },
+          '& .Mui-selected': { color: ORO },
+          '& .MuiTabs-indicator': { backgroundColor: ORO },
+        }}
+      >
+        <Tab icon={<AttachFileIcon sx={{ fontSize: 14 }} />} iconPosition="start" label="Adjuntos" />
+        <Tab icon={<ArticleIcon sx={{ fontSize: 14 }} />} iconPosition="start" label="Form. Regularización" />
+      </Tabs>
+
+      {/* ── TAB 0: Adjuntos ── */}
+      {tab === 0 && (
       <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
 
         {/* ── Sub-bloque: lista + descargar ── */}
@@ -576,6 +620,117 @@ function DocsSidebar({ solicitudId, sol }) {
         </Box>
 
       </Box>
+      )}
+
+      {/* ── TAB 1: Formulario de Regularización ── */}
+      {tab === 1 && (
+      <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+        {/* Descargar XLSX pre-llenado */}
+        <Box sx={{ border: '1px solid', borderColor: `${ORO}33`, borderRadius: 1.5, p: 1.2, bgcolor: `${ORO}05` }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            Descarga el formulario pre-llenado con los datos de la solicitud (asegurado, empleador, periodos FPC y causal).
+          </Typography>
+          <Button
+            fullWidth variant="outlined" size="small"
+            startIcon={xlsxLoading ? <CircularProgress size={14} /> : <DownloadIcon />}
+            disabled={xlsxLoading}
+            onClick={handleDescargarXLSX}
+            sx={{ borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}18` } }}
+          >
+            {xlsxLoading ? 'Generando…' : 'Descargar Form. Regularización XLSX'}
+          </Button>
+        </Box>
+
+        {/* Subir formulario llenado */}
+        <Box sx={{
+          border: '2px dashed', borderColor: `${ORO}55`, borderRadius: 1.5,
+          p: 1.2, bgcolor: `${ORO}04`,
+          transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+          '&:hover': { borderColor: ORO, boxShadow: `0 0 0 3px ${ORO}1A` },
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1 }}>
+            <UploadFileIcon sx={{ fontSize: 15, color: ORO }} />
+            <Typography variant="caption" fontWeight={700} sx={{ color: ORO, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Subir formulario firmado
+            </Typography>
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+            Adjunta el formulario completado y firmado por el asegurado.
+          </Typography>
+          <input
+            type="file"
+            ref={formFileRef}
+            style={{ display: 'none' }}
+            accept=".xlsx,.xls,.pdf"
+            onChange={async (e) => {
+              const file = e.target.files[0]
+              e.target.value = ''
+              if (!file) return
+              setUploadingForm(true)
+              try {
+                const fd = new FormData()
+                fd.append('archivo', file)
+                fd.append('solicitud', solicitudId)
+                fd.append('observacion', 'FORM_REGULARIZACION')
+                await createDocumentoRespaldo(fd)
+                qc.invalidateQueries(['docs-respaldo', solicitudId])
+                toast.success('Formulario adjuntado')
+              } catch {
+                toast.error('Error al subir el formulario')
+              } finally {
+                setUploadingForm(false)
+              }
+            }}
+          />
+          <Button
+            fullWidth size="small" variant="outlined"
+            startIcon={uploadingForm ? <CircularProgress size={14} /> : <UploadFileIcon />}
+            disabled={uploadingForm}
+            onClick={() => formFileRef.current?.click()}
+            sx={{ borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}18` } }}
+          >
+            {uploadingForm ? 'Subiendo…' : 'Seleccionar archivo'}
+          </Button>
+        </Box>
+
+        {/* Lista de formularios ya subidos */}
+        {(() => {
+          const formDocs = docsRespaldo.filter((d) => d.observacion === 'FORM_REGULARIZACION')
+          if (formDocs.length === 0) return null
+          return (
+            <Box sx={{ border: '1px solid', borderColor: `${ORO}33`, borderRadius: 1.5, p: 1.2 }}>
+              <Typography variant="caption" fontWeight={700} sx={{ color: ORO, mb: 1, display: 'block' }}>
+                Formularios subidos
+              </Typography>
+              {formDocs.map((doc) => (
+                <Box key={doc.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.8, borderBottom: '1px solid #2A3D6B' }}>
+                  <ArticleIcon sx={{ fontSize: 16, color: ORO, flexShrink: 0 }} />
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {dayjs(doc.created_at).format('DD/MM/YYYY HH:mm')}
+                    </Typography>
+                    {doc.archivo && (
+                      <Chip
+                        label="Ver / Descargar"
+                        size="small"
+                        component="a"
+                        href={`http://localhost:8000${doc.archivo}`}
+                        target="_blank"
+                        clickable
+                        icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
+                        sx={{ ml: 1, bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem' }}
+                      />
+                    )}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )
+        })()}
+
+      </Box>
+      )}
 
     </Box>
   )
