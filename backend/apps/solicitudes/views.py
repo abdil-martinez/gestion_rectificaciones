@@ -61,15 +61,15 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
 
         if mi_bandeja:
             qs = qs.filter(
-                Q(usuario_creador=user, estado__in=['BOR', 'PEND', 'DEV', 'APRO', 'RECH'])
+                Q(usuario_creador=user, estado__in=['BOR', 'PEND', 'DEV', 'RECT', 'RECH'])
             )
         elif analista_bandeja:
             # Bandeja personal del analista:
             # - trabajo activo (asignado a él, en cualquier estado operativo)
             # - solicitudes procesadas/devueltas/anuladas donde él es el creador
             qs = qs.filter(
-                Q(analista_asignado=user, estado__in=['ASIG', 'REV', 'DEV', 'APRO', 'RECH', 'ANU']) |
-                Q(usuario_creador=user, estado__in=['DEV', 'APRO', 'RECH', 'ANU'])
+                Q(analista_asignado=user, estado__in=['ASIG', 'REV', 'DEV', 'RECT', 'RECH', 'ANU']) |
+                Q(usuario_creador=user, estado__in=['DEV', 'RECT', 'RECH', 'ANU'])
             )
         elif user.rol == 'ANALIST' and not todas:
             if self.request.query_params.get('analista_asignado'):
@@ -155,7 +155,7 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         if nuevo_estado == 'ANU' and not solicitud.analista_asignado_id and solicitud.usuario_creador_id:
             solicitud.analista_asignado = solicitud.usuario_creador
 
-        if nuevo_estado in ('APRO', 'FIN'):
+        if nuevo_estado in ('RECT', 'FIN'):
             solicitud.fecha_resolucion = timezone.now().date()
 
         solicitud.usuario_modificador = request.user

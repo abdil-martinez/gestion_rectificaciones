@@ -43,7 +43,7 @@ import SolicitudPDF from '../../components/SolicitudPDF'
 import NotificacionesPanel from '../../components/NotificacionesPanel'
 
 const ACCION_ICONS = {
-  APRO: { icon: <CheckCircleIcon />, color: '#4caf50' },
+  RECT: { icon: <CheckCircleIcon />, color: '#4caf50' },
   RECH: { icon: <CancelIcon />,      color: '#f44336' },
   DEV:  { icon: <ReplayIcon />,      color: '#9c27b0' },
   FIN:  { icon: <CheckCircleIcon />, color: '#1b5e20' },
@@ -650,7 +650,7 @@ export default function SolicitudDetail() {
     PEND: { label: 'Enviar',      color: 'info',    icon: <PlayArrowIcon /> },
     ASIG: { label: 'Asignar',     color: 'warning', icon: <AssignmentReturnIcon /> },
     REV:  { label: 'En Revisión', color: 'warning', icon: <PlayArrowIcon /> },
-    APRO: { label: 'Rectificar',  color: 'success', icon: <CheckCircleIcon /> },
+    RECT: { label: 'Rectificar',  color: 'success', icon: <CheckCircleIcon /> },
     RECH: { label: 'Rechazar',    color: 'error',   icon: <CancelIcon /> },
     DEV:  { label: 'Devolver',    color: 'secondary',icon: <ReplayIcon /> },
     FIN:  { label: 'Finalizar',   color: 'success', icon: <CheckCircleIcon /> },
@@ -910,7 +910,7 @@ export default function SolicitudDetail() {
           {BOTON_TRANSICION[nuevoEstado]?.label || nuevoEstado} — SOL-{sol.numero_solicitud}
         </DialogTitle>
         <DialogContent>
-          {nuevoEstado === 'FIN' && sol.estado === 'APRO' ? (
+          {nuevoEstado === 'FIN' && sol.estado === 'RECT' ? (
             <Alert severity="success" sx={{ mb: 2 }}>
               Está a punto de <strong>finalizar</strong> una solicitud rectificada.
               Asegúrese de haber emitido las <strong>notificaciones al asegurado y empleador</strong> antes de continuar.

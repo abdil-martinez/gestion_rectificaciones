@@ -27,7 +27,7 @@ const ESTADOS = [
   { value: 'PEND', label: 'Pendiente' },
   { value: 'ASIG', label: 'Asignado' },
   { value: 'REV',  label: 'En Revisión' },
-  { value: 'APRO', label: 'Aprobado' },
+  { value: 'RECT', label: 'Rectificado' },
   { value: 'RECH', label: 'Rechazado' },
   { value: 'DEV',  label: 'Devuelto' },
   { value: 'FIN',  label: 'Finalizado' },

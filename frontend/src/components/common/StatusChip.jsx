@@ -22,7 +22,7 @@ const ESTADO_CONFIG = {
   PEND: { label: 'Pendiente',   color: 'info',      sx: { ...pulseKeyframes('#2196f3') } },
   ASIG: { label: 'Asignado',    color: 'warning',   sx: { ...pulseKeyframes('#ff9800') } },
   REV:  { label: 'En Revisión', color: 'warning',   sx: { bgcolor: '#e65100', color: '#fff', ...glowKeyframes('#e65100') } },
-  APRO: { label: 'Rectificado', color: 'success',   sx: { ...glowKeyframes('#1db954') } },
+  RECT: { label: 'Rectificado', color: 'success',   sx: { ...glowKeyframes('#1db954') } },
   RECH: { label: 'Rechazado',   color: 'error',     sx: { transition: 'all 0.2s', '&:hover': { transform: 'scale(1.05)' } } },
   DEV:  { label: 'Devuelto',    color: 'secondary', sx: { transition: 'all 0.2s' } },
   FIN:  { label: 'Finalizado',  color: 'success',   sx: { bgcolor: '#1b5e20', color: '#fff' } },

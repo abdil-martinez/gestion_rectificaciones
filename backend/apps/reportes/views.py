@@ -26,7 +26,7 @@ class DashboardView(APIView):
 
         vencidas = Solicitud.objects.filter(
             fecha_limite__lt=hoy
-        ).exclude(estado__in=['FIN', 'ANU', 'APRO']).count()
+        ).exclude(estado__in=['FIN', 'ANU', 'RECT']).count()
 
         por_regional = list(
             Solicitud.objects.filter(regional__isnull=False)
@@ -129,7 +129,7 @@ class ReporteProductividadView(APIView):
             )
             .annotate(
                 total=Count('id'),
-                aprobadas=Count('id', filter=Q(estado='APRO')),
+                aprobadas=Count('id', filter=Q(estado='RECT')),
                 rechazadas=Count('id', filter=Q(estado='RECH')),
                 finalizadas=Count('id', filter=Q(estado='FIN')),
             )
@@ -185,7 +185,7 @@ class ReporteCausalView(APIView):
             qs.values('tipo_causal__id', 'tipo_causal__nombre', 'tipo_causal__tipo')
             .annotate(
                 total=Count('id'),
-                aprobadas=Count('id', filter=Q(estado='APRO')),
+                aprobadas=Count('id', filter=Q(estado='RECT')),
                 rechazadas=Count('id', filter=Q(estado='RECH')),
                 finalizadas=Count('id', filter=Q(estado='FIN')),
                 monto_total=Count('monto_total'),
@@ -232,7 +232,7 @@ class ReporteTipoRegionalView(APIView):
             .annotate(
                 total=Count('id'),
                 finalizadas=Count('id', filter=Q(estado='FIN')),
-                aprobadas=Count('id',   filter=Q(estado='APRO')),
+                aprobadas=Count('id',   filter=Q(estado='RECT')),
                 rechazadas=Count('id',  filter=Q(estado='RECH')),
             )
             .order_by('-total')
@@ -247,7 +247,7 @@ class ReporteTipoRegionalView(APIView):
             .annotate(
                 total=Count('id'),
                 finalizadas=Count('id', filter=Q(estado='FIN')),
-                aprobadas=Count('id',   filter=Q(estado='APRO')),
+                aprobadas=Count('id',   filter=Q(estado='RECT')),
             )
             .order_by('regional__tipo_regional__nombre', '-total')
         )
@@ -318,7 +318,7 @@ class ReporteRegionalView(APIView):
             .annotate(
                 total=Count('id'),
                 finalizadas=Count('id', filter=Q(estado='FIN')),
-                aprobadas=Count('id',   filter=Q(estado='APRO')),
+                aprobadas=Count('id',   filter=Q(estado='RECT')),
                 rechazadas=Count('id',  filter=Q(estado='RECH')),
             )
             .order_by('-total')
@@ -383,7 +383,7 @@ class ExportarExcelView(APIView):
                 )
                 .annotate(
                     total=Count('id'),
-                    aprobadas=Count('id', filter=Q(estado='APRO')),
+                    aprobadas=Count('id', filter=Q(estado='RECT')),
                     rechazadas=Count('id', filter=Q(estado='RECH')),
                     finalizadas=Count('id', filter=Q(estado='FIN')),
                 )

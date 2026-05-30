@@ -21,13 +21,13 @@ import { ORO, ORO_DARK, NAVY, NAVY2 } from '../../theme'
 
 const ESTADO_BAR_COLORS = {
   BOR: '#607d8b', PEND: '#2196f3', ASIG: '#ff9800',
-  REV: '#e65100', APRO: '#4caf50', RECH: '#f44336',
+  REV: '#e65100', RECT: '#4caf50', RECH: '#f44336',
   DEV: '#9c27b0', FIN: '#1b5e20', ANU: '#b71c1c',
 }
 
 const ESTADO_LABELS = {
   BOR: 'Borrador', PEND: 'Pendiente', ASIG: 'Asignado',
-  REV: 'En Revisión', APRO: 'Rectificado', RECH: 'Rechazado',
+  REV: 'En Revisión', RECT: 'Rectificado', RECH: 'Rechazado',
   DEV: 'Devuelto',  FIN: 'Finalizado', ANU: 'Anulado',
 }
 
