@@ -11,6 +11,8 @@ import WorkflowView from './pages/workflow/WorkflowView'
 import ReportesPage from './pages/reportes/ReportesPage'
 import ConfigPage from './pages/config/ConfigPage'
 import UsersPage from './pages/usuarios/UsersPage'
+import AjustesPrevision from './pages/ajustes/AjustesPrevision'
+import AjustesFuturoBolivia from './pages/ajustes/AjustesFuturoBolivia'
 
 function PrivateRoute({ children }) {
   const token = useAuthStore((s) => s.token)
@@ -72,6 +74,22 @@ export default function App() {
           element={
             <AdminRoute>
               <UsersPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="ajustes/prevision"
+          element={
+            <AdminRoute>
+              <AjustesPrevision />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="ajustes/futuro-bolivia"
+          element={
+            <AdminRoute>
+              <AjustesFuturoBolivia />
             </AdminRoute>
           }
         />

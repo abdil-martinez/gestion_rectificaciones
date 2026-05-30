@@ -7,12 +7,15 @@ const ORO  = '#CBab58'
 const GRAY = '#555'
 
 const S = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 8, color: '#222', backgroundColor: '#fff' },
+  // A4: 595×842 pts.
+  page: { fontFamily: 'Helvetica', fontSize: 8, color: '#222' },
 
-  // Imagen de fondo completa
-  bgImg: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
+  // Imagen de fondo en flujo normal (pintada primero = detrás)
+  // height: 841 para que quede en la primera página sin desbordarse
+  bgImg: { width: '100%', height: 841 },
 
-  // Área de contenido — respeta encabezado (~3.5cm) y pie (~2.5cm)
+  // Contenido en absolute (pintado después = encima)
+  // Encabezado ~100pt, pie ~72pt, márgenes laterales 42pt
   content: {
     position: 'absolute',
     top: 100,
@@ -255,7 +258,7 @@ export default function FormularioRegularizacionPDF({ sol, formularios = [] }) {
           </View>
 
           {/* Pie declaración */}
-          <Text style={[S.aviso, { marginTop: 8, fontFamily: 'Helvetica-Bold', color: NAVY }]}>
+          <Text style={[S.aviso, { marginTop: 8, fontFamily: 'Helvetica-Bold', fontStyle: 'normal', color: NAVY }]}>
             EL PRESENTE FORMULARIO CONSTITUYE UNA DECLARACIÓN JURADA
           </Text>
 

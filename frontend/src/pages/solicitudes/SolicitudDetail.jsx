@@ -438,7 +438,10 @@ function DocsSidebar({ solicitudId, sol }) {
       const a = document.createElement('a')
       a.href = url
       a.download = `form_regularizacion_${sol.numero_solicitud}.pdf`
+      a.style.display = 'none'
+      document.body.appendChild(a)
       a.click()
+      document.body.removeChild(a)
       URL.revokeObjectURL(url)
     } catch (e) {
       toast.error('Error al generar PDF: ' + e.message)
