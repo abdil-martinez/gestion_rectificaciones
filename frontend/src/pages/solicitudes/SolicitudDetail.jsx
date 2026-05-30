@@ -499,7 +499,7 @@ function DocsSidebar({ solicitudId, sol }) {
           '& .MuiTabs-indicator': { backgroundColor: ORO },
         }}
       >
-        <Tab icon={<AttachFileIcon sx={{ fontSize: 14 }} />} iconPosition="start" label="Adjuntos" />
+        <Tab icon={<AttachFileIcon sx={{ fontSize: 14 }} />} iconPosition="start" label="Form Interno" />
         <Tab icon={<ArticleIcon sx={{ fontSize: 14 }} />} iconPosition="start" label="Form. Regularización" />
       </Tabs>
 

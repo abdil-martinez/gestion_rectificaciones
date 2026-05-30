@@ -3,7 +3,7 @@ import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   Grid, TextField, Typography, Table, TableHead, TableRow,
   TableCell, TableBody, Tabs, Tab, CircularProgress, Divider,
-  IconButton, Tooltip, Chip,
+  Chip,
 } from '@mui/material'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import NotificationsIcon from '@mui/icons-material/Notifications'
@@ -252,30 +252,33 @@ function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc }) {
   }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <Button
-          fullWidth variant="outlined"
-          startIcon={isAse ? <PersonIcon /> : <BusinessIcon />}
-          onClick={() => setOpen(true)}
-          sx={{ borderColor: ORO, color: ORO, justifyContent: 'flex-start', px: 2,
-            '&:hover': { bgcolor: `${ORO}18`, borderColor: ORO } }}
-        >
-          {isAse ? 'Notif. Asegurado' : 'Notif. Empleador'}
-        </Button>
-        <Tooltip title={existingDoc ? 'Reemplazar notificación firmada' : 'Subir notificación firmada'}>
-          <IconButton
-            size="small"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            sx={{ border: '1px solid #2A3D6B', borderRadius: 1, px: 1.2, flexShrink: 0 }}
-          >
-            {uploading
-              ? <CircularProgress size={16} />
-              : <UploadFileIcon sx={{ color: ORO, fontSize: 20 }} />}
-          </IconButton>
-        </Tooltip>
-      </Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+      {/* Generar PDF */}
+      <Button
+        fullWidth variant="outlined" size="small"
+        startIcon={isAse ? <PersonIcon /> : <BusinessIcon />}
+        onClick={() => setOpen(true)}
+        sx={{ borderColor: ORO, color: ORO, justifyContent: 'flex-start', px: 2,
+          '&:hover': { bgcolor: `${ORO}18`, borderColor: ORO } }}
+      >
+        {isAse ? 'Generar Notif. Asegurado' : 'Generar Notif. Empleador'}
+      </Button>
+
+      {/* Subir documento firmado */}
+      <Button
+        fullWidth variant="outlined" size="small"
+        startIcon={uploading ? <CircularProgress size={14} /> : <UploadFileIcon />}
+        disabled={uploading}
+        onClick={() => fileRef.current?.click()}
+        sx={{ borderColor: '#2A3D6B', color: 'text.secondary', justifyContent: 'flex-start', px: 2,
+          '&:hover': { bgcolor: `${ORO}10`, borderColor: ORO, color: ORO } }}
+      >
+        {uploading
+          ? 'Subiendo…'
+          : existingDoc
+            ? (isAse ? 'Reemplazar doc. Asegurado firmado' : 'Reemplazar doc. Empleador firmado')
+            : (isAse ? 'Subir doc. Asegurado firmado' : 'Subir doc. Empleador firmado')}
+      </Button>
 
       <input
         type="file"
@@ -293,7 +296,7 @@ function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc }) {
           href={`${BASE_URL}${existingDoc.archivo}`}
           target="_blank"
           clickable
-          sx={{ mt: 0.5, bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem' }}
+          sx={{ bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem', alignSelf: 'flex-start' }}
         />
       )}
 
