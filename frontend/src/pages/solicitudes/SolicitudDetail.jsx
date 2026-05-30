@@ -42,6 +42,7 @@ import { useAuthStore } from '../../store/authStore'
 import { ORO, NAVY2 } from '../../theme'
 import toast from 'react-hot-toast'
 import SolicitudPDF from '../../components/SolicitudPDF'
+import FormularioRegularizacionPDF from '../../components/FormularioRegularizacionPDF'
 import NotificacionesPanel from '../../components/NotificacionesPanel'
 
 const ACCION_ICONS = {
@@ -339,12 +340,13 @@ function DocumentosRespaldo({ solicitudId }) {
 const NOTIF_KEYS = ['__NOTIF_ASE__', '__NOTIF_EMP__']
 
 function DocsSidebar({ solicitudId, sol }) {
-  const [tab,        setTab]            = useState(0)
-  const [pdfLoading, setPdfLoading]     = useState(false)
-  const [uploading,  setUploading]      = useState(false)
-  const [xlsxLoading, setXlsxLoading]  = useState(false)
+  const [tab,           setTab]          = useState(0)
+  const [pdfLoading,    setPdfLoading]   = useState(false)
+  const [uploading,     setUploading]    = useState(false)
+  const [xlsxLoading,   setXlsxLoading] = useState(false)
+  const [formPdfLoading, setFormPdfLoading] = useState(false)
   const [uploadingForm, setUploadingForm] = useState(false)
-  const [descripcion, setDescripcion]   = useState('')
+  const [descripcion,   setDescripcion]  = useState('')
   const fileRef     = useRef(null)
   const formFileRef = useRef(null)
   const qc = useQueryClient()
@@ -423,6 +425,25 @@ function DocsSidebar({ solicitudId, sol }) {
       toast.error('Error al generar PDF: ' + e.message)
     } finally {
       setPdfLoading(false)
+    }
+  }
+
+  const handleDescargarFormPDF = async () => {
+    setFormPdfLoading(true)
+    try {
+      const blob = await pdf(
+        <FormularioRegularizacionPDF sol={sol} formularios={formularios} />
+      ).toBlob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `form_regularizacion_${sol.numero_solicitud}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e) {
+      toast.error('Error al generar PDF: ' + e.message)
+    } finally {
+      setFormPdfLoading(false)
     }
   }
 
@@ -626,11 +647,20 @@ function DocsSidebar({ solicitudId, sol }) {
       {tab === 1 && (
       <Box sx={{ p: 1.5, display: 'flex', flexDirection: 'column', gap: 2 }}>
 
-        {/* Descargar XLSX pre-llenado */}
+        {/* Descargar formulario pre-llenado */}
         <Box sx={{ border: '1px solid', borderColor: `${ORO}33`, borderRadius: 1.5, p: 1.2, bgcolor: `${ORO}05` }}>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
             Descarga el formulario pre-llenado con los datos de la solicitud (asegurado, empleador, periodos FPC y causal).
           </Typography>
+          <Button
+            fullWidth variant="outlined" size="small"
+            startIcon={formPdfLoading ? <CircularProgress size={14} /> : <PictureAsPdfIcon />}
+            disabled={formPdfLoading}
+            onClick={handleDescargarFormPDF}
+            sx={{ mb: 1, borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}18` } }}
+          >
+            {formPdfLoading ? 'Generando…' : 'Descargar Form. Regularización PDF'}
+          </Button>
           <Button
             fullWidth variant="outlined" size="small"
             startIcon={xlsxLoading ? <CircularProgress size={14} /> : <DownloadIcon />}
