@@ -41,29 +41,50 @@ const ESTADOS = [
 
 const ESTADOS_CERRADOS = ['FIN', 'ANU', 'RECT', 'RECH']
 
+const PLAZO_CONFIG = {
+  CERRADA:    { label: 'CERRADA',    color: '#9e9e9e', bg: '#9e9e9e18' },
+  VENCIDA:    { label: 'VENCIDA',    color: '#f44336', bg: '#f4433618' },
+  POR_VENCER: { label: 'POR VENCER', color: '#ff9800', bg: '#ff980018' },
+  EN_PLAZO:   { label: 'EN PLAZO',   color: '#4caf50', bg: '#4caf5018' },
+}
+
 function PlazoChip({ sol }) {
-  if (!sol.fecha_limite || ESTADOS_CERRADOS.includes(sol.estado)) {
+  if (!sol.fecha_limite) {
     return <Typography variant="body2" color="text.disabled">—</Typography>
   }
+
+  if (ESTADOS_CERRADOS.includes(sol.estado)) {
+    const { label, color, bg } = PLAZO_CONFIG.CERRADA
+    const label2 = { FIN: 'Finalizado', ANU: 'Anulado', RECT: 'Rectificado', RECH: 'Rechazado' }[sol.estado] || sol.estado
+    return (
+      <Box>
+        <Chip size="small" label={label}
+          sx={{ bgcolor: bg, color, fontWeight: 700, fontSize: '0.67rem', height: 18, mb: 0.3 }} />
+        <Typography variant="caption" display="block" sx={{ color, fontSize: '0.65rem', lineHeight: 1.2 }}>
+          {label2}
+        </Typography>
+      </Box>
+    )
+  }
+
   const dias = dayjs(sol.fecha_limite).diff(dayjs().startOf('day'), 'day')
-  if (dias < 0) {
-    return (
-      <Chip size="small"
-        label={`Vencida ${Math.abs(dias)}d`}
-        sx={{ bgcolor: '#f4433618', color: '#f44336', fontWeight: 700, fontSize: '0.68rem', height: 20 }} />
-    )
-  }
-  if (dias <= 7) {
-    return (
-      <Chip size="small"
-        label={`${dias}d restantes`}
-        sx={{ bgcolor: '#ff980018', color: '#ff9800', fontWeight: 700, fontSize: '0.68rem', height: 20 }} />
-    )
-  }
+  let key = 'EN_PLAZO'
+  if (dias < 0)   key = 'VENCIDA'
+  else if (dias <= 7) key = 'POR_VENCER'
+
+  const { label, color, bg } = PLAZO_CONFIG[key]
+  const sub = dias < 0
+    ? `Hace ${Math.abs(dias)} día${Math.abs(dias) !== 1 ? 's' : ''}`
+    : `${dias}d restantes`
+
   return (
-    <Chip size="small"
-      label={`${dias}d restantes`}
-      sx={{ bgcolor: '#4caf5018', color: '#4caf50', fontWeight: 700, fontSize: '0.68rem', height: 20 }} />
+    <Box>
+      <Chip size="small" label={label}
+        sx={{ bgcolor: bg, color, fontWeight: 700, fontSize: '0.67rem', height: 18, mb: 0.3 }} />
+      <Typography variant="caption" display="block" sx={{ color, fontSize: '0.65rem', lineHeight: 1.2 }}>
+        {sub}
+      </Typography>
+    </Box>
   )
 }
 
