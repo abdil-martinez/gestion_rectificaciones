@@ -206,6 +206,9 @@ class SolicitudCreateSerializer(serializers.ModelSerializer):
             validated_data['empleador'] = empleador
 
         base = validated_data.get('fecha_recepcion') or datetime.date.today()
-        validated_data['fecha_limite'] = base + datetime.timedelta(days=30)
+        from apps.catalogos.models import EstadoPlazo
+        en_plazo = EstadoPlazo.objects.filter(nombre__iexact='En Plazo').first()
+        dias_plazo = en_plazo.limite_dias if en_plazo else 15
+        validated_data['fecha_limite'] = base + datetime.timedelta(days=dias_plazo)
 
         return super().create(validated_data)

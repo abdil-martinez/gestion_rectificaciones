@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box, Button, Card, CardContent, Chip, TextField,
@@ -41,38 +41,60 @@ const ESTADOS = [
 
 const ESTADOS_CERRADOS = ['FIN', 'ANU', 'RECT', 'RECH']
 
-const PLAZO_CONFIG = {
-  CERRADA:    { label: 'CERRADA',    color: '#9e9e9e', bg: '#9e9e9e18' },
-  VENCIDA:    { label: 'VENCIDA',    color: '#f44336', bg: '#f4433618' },
-  POR_VENCER: { label: 'POR VENCER', color: '#ff9800', bg: '#ff980018' },
-  EN_PLAZO:   { label: 'EN PLAZO',   color: '#4caf50', bg: '#4caf5018' },
-}
+// Colors indexed by umbral position (ASC by limite_dias)
+const UMBRAL_COLORS = [
+  { color: '#f44336', bg: '#f4433618' },  // 0: Vencido
+  { color: '#e53935', bg: '#e5393518' },  // 1: Crítico
+  { color: '#ff5722', bg: '#ff572218' },  // 2: Urgente
+  { color: '#ff9800', bg: '#ff980018' },  // 3+: Próximo a Vencer
+]
+const EN_PLAZO_COLOR = { color: '#4caf50', bg: '#4caf5018' }
+const CERRADA_COLOR  = { color: '#9e9e9e', bg: '#9e9e9e18' }
 
-function PlazoChip({ sol }) {
+function PlazoChip({ sol, umbrales }) {
   if (!sol.fecha_limite) {
     return <Typography variant="body2" color="text.disabled">—</Typography>
   }
 
   if (ESTADOS_CERRADOS.includes(sol.estado)) {
-    const { label, color, bg } = PLAZO_CONFIG.CERRADA
-    const label2 = { FIN: 'Finalizado', ANU: 'Anulado', RECT: 'Rectificado', RECH: 'Rechazado' }[sol.estado] || sol.estado
+    const subLabel = { FIN: 'Finalizado', ANU: 'Anulado', RECT: 'Rectificado', RECH: 'Rechazado' }[sol.estado] || sol.estado
     return (
       <Box>
-        <Chip size="small" label={label}
-          sx={{ bgcolor: bg, color, fontWeight: 700, fontSize: '0.67rem', height: 18, mb: 0.3 }} />
-        <Typography variant="caption" display="block" sx={{ color, fontSize: '0.65rem', lineHeight: 1.2 }}>
-          {label2}
+        <Chip size="small" label="CERRADA"
+          sx={{ bgcolor: CERRADA_COLOR.bg, color: CERRADA_COLOR.color, fontWeight: 700, fontSize: '0.67rem', height: 18, mb: 0.3 }} />
+        <Typography variant="caption" display="block" sx={{ color: CERRADA_COLOR.color, fontSize: '0.65rem', lineHeight: 1.2 }}>
+          {subLabel}
         </Typography>
       </Box>
     )
   }
 
   const dias = dayjs(sol.fecha_limite).diff(dayjs().startOf('day'), 'day')
-  let key = 'EN_PLAZO'
-  if (dias < 0)   key = 'VENCIDA'
-  else if (dias <= 7) key = 'POR_VENCER'
 
-  const { label, color, bg } = PLAZO_CONFIG[key]
+  // Find matching umbral: index 0 = Vencido (dias<0), indices 1+ matched by limite_dias
+  let estadoIdx = -1
+  if (umbrales.length > 0) {
+    if (dias < 0) {
+      estadoIdx = 0
+    } else {
+      for (let i = 1; i < umbrales.length; i++) {
+        if (dias <= umbrales[i].limite_dias) { estadoIdx = i; break }
+      }
+    }
+  }
+
+  let label, color, bg
+  if (estadoIdx === -1) {
+    label = 'EN PLAZO'
+    color = EN_PLAZO_COLOR.color
+    bg    = EN_PLAZO_COLOR.bg
+  } else {
+    const clr = UMBRAL_COLORS[Math.min(estadoIdx, UMBRAL_COLORS.length - 1)]
+    label = umbrales[estadoIdx].nombre.toUpperCase()
+    color = clr.color
+    bg    = clr.bg
+  }
+
   const sub = dias < 0
     ? `Hace ${Math.abs(dias)} día${Math.abs(dias) !== 1 ? 's' : ''}`
     : `${dias}d restantes`
@@ -162,6 +184,21 @@ export default function SolicitudList() {
     queryFn:  () => catalogosApi.tipoRegional.getAll().then((r) => r.data.results || r.data),
     staleTime: 10 * 60_000,
   })
+  const { data: estadosPlazoData = [] } = useQuery({
+    queryKey: ['estado-plazo'],
+    queryFn:  () => catalogosApi.estadoPlazo.getAll().then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+  })
+  const umbrales = useMemo(() =>
+    estadosPlazoData
+      .filter((e) => e.nombre.toLowerCase() !== 'en plazo')
+      .sort((a, b) => a.limite_dias - b.limite_dias),
+    [estadosPlazoData],
+  )
+  const enPlazoEstado = useMemo(() =>
+    estadosPlazoData.find((e) => e.nombre.toLowerCase() === 'en plazo'),
+    [estadosPlazoData],
+  )
   const { data: regionalesData = [] } = useQuery({
     queryKey: ['regionales', tipoRegional],
     queryFn:  () => catalogosApi.regionales.getAll(
@@ -328,9 +365,12 @@ export default function SolicitudList() {
                 <InputLabel>Plazo</InputLabel>
                 <Select value={plazo} label="Plazo" onChange={(e) => { setPlazo(e.target.value); setPage(0) }}>
                   <MenuItem value="">Todos</MenuItem>
-                  <MenuItem value="EN_PLAZO">En plazo</MenuItem>
-                  <MenuItem value="POR_VENCER">Por vencer</MenuItem>
-                  <MenuItem value="VENCIDA">Vencida</MenuItem>
+                  {umbrales.map((ep) => (
+                    <MenuItem key={ep.id} value={ep.nombre}>{ep.nombre}</MenuItem>
+                  ))}
+                  {enPlazoEstado && (
+                    <MenuItem value={enPlazoEstado.nombre}>{enPlazoEstado.nombre}</MenuItem>
+                  )}
                   <MenuItem value="CERRADA">Cerrada</MenuItem>
                 </Select>
               </FormControl>
@@ -383,7 +423,7 @@ export default function SolicitudList() {
               {search       && <Chip size="small" label={`Búsqueda: "${search}"`}     onDelete={() => { setSearch('');       setPage(0) }} />}
               {estado       && <Chip size="small" label={`Estado: ${ESTADOS.find((e) => e.value === estado)?.label || estado}`} onDelete={() => { setEstado('');       setPage(0) }} />}
               {prioridad    && <Chip size="small" label={`Prioridad: ${prioridad}`}   onDelete={() => { setPrioridad('');    setPage(0) }} />}
-              {plazo        && <Chip size="small" label={`Plazo: ${{ EN_PLAZO: 'En plazo', POR_VENCER: 'Por vencer', VENCIDA: 'Vencida', CERRADA: 'Cerrada' }[plazo]}`} onDelete={() => { setPlazo(''); setPage(0) }} />}
+              {plazo        && <Chip size="small" label={`Plazo: ${plazo === 'CERRADA' ? 'Cerrada' : plazo}`} onDelete={() => { setPlazo(''); setPage(0) }} />}
               {tipoRegional && <Chip size="small" label={`Tipo Regional: ${tiposRegionalData.find((t) => t.id === Number(tipoRegional))?.nombre || tipoRegional}`} onDelete={() => { setTipoRegional(''); setRegional(''); setAgencia(''); setPage(0) }} />}
               {regional     && <Chip size="small" label={`Regional: ${regionalesData.find((r) => r.id === Number(regional))?.nombre || regional}`} onDelete={() => { setRegional(''); setAgencia(''); setPage(0) }} />}
               {agencia      && <Chip size="small" label={`Agencia: ${agenciasData.find((a) => a.id === Number(agencia))?.nombre || agencia}`} onDelete={() => { setAgencia(''); setPage(0) }} />}
@@ -497,7 +537,7 @@ export default function SolicitudList() {
                           <Typography variant="body2" color="text.secondary">{sol.agencia_nombre || '—'}</Typography>
                         </TableCell>
                         <TableCell><StatusChip estado={sol.estado} /></TableCell>
-                        <TableCell><PlazoChip sol={sol} /></TableCell>
+                        <TableCell><PlazoChip sol={sol} umbrales={umbrales} /></TableCell>
                         <TableCell><PrioridadChip prioridad={sol.prioridad} /></TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">{sol.analista_nombre || '—'}</Typography>

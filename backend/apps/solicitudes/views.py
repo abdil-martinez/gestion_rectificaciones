@@ -56,25 +56,41 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         if exclude_estados:
             qs = qs.exclude(estado__in=[e.strip() for e in exclude_estados.split(',')])
 
-        # Filtro por plazo
+        # Filtro por plazo — umbrales dinámicos desde EstadoPlazo
         plazo = self.request.query_params.get('plazo')
         if plazo:
             import datetime
+            from apps.catalogos.models import EstadoPlazo as EstadoPlazoModel
             today = timezone.now().date()
             estados_cerrados = ['FIN', 'ANU', 'RECT', 'RECH']
-            if plazo == 'VENCIDA':
-                qs = qs.filter(fecha_limite__lt=today).exclude(estado__in=estados_cerrados)
-            elif plazo == 'POR_VENCER':
-                qs = qs.filter(
-                    fecha_limite__gte=today,
-                    fecha_limite__lte=today + datetime.timedelta(days=7)
-                ).exclude(estado__in=estados_cerrados)
-            elif plazo == 'EN_PLAZO':
-                qs = qs.filter(
-                    fecha_limite__gt=today + datetime.timedelta(days=7)
-                ).exclude(estado__in=estados_cerrados)
-            elif plazo == 'CERRADA':
+
+            if plazo == 'CERRADA':
                 qs = qs.filter(estado__in=estados_cerrados)
+            else:
+                qs = qs.exclude(estado__in=estados_cerrados)
+                # Umbrales ASC por limite_dias, sin "En Plazo" (es el total de días)
+                umbrales = list(
+                    EstadoPlazoModel.objects.exclude(nombre__iexact='En Plazo')
+                    .order_by('limite_dias').values_list('nombre', 'limite_dias')
+                )
+                # Ej: [('Vencido',0),('Crítico',2),('Urgente',5),('Próximo a Vencer',10)]
+                encontrado = False
+                for i, (nombre, limite) in enumerate(umbrales):
+                    if nombre.lower() == plazo.lower():
+                        if i == 0:  # Vencido: fecha_limite anterior a hoy
+                            qs = qs.filter(fecha_limite__lt=today)
+                        else:
+                            lower = umbrales[i - 1][1]
+                            qs = qs.filter(
+                                fecha_limite__gt=today + datetime.timedelta(days=lower),
+                                fecha_limite__lte=today + datetime.timedelta(days=limite),
+                            )
+                        encontrado = True
+                        break
+                if not encontrado:
+                    # "En Plazo": dias_restantes > último umbral
+                    ultimo = umbrales[-1][1] if umbrales else 0
+                    qs = qs.filter(fecha_limite__gt=today + datetime.timedelta(days=ultimo))
 
         todas            = self.request.query_params.get('todas') == 'true'
         analista_bandeja = self.request.query_params.get('analista_bandeja') == 'true'
