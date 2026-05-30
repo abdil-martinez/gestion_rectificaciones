@@ -5,14 +5,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .mixins import SoftDeleteMixin
 from .models import (
     TipoSolicitud, Administradora, CategoriaCausal, TipoCausal, Unidad, TipoRegional,
-    FormularioContribucion, TipoIdentificacion, AreaSolicitante,
+    TipoIdentificacion, AreaSolicitante,
     EstadoPlazo, TipoPlanilla, EstadoDocumentacion, Documento,
     Regional, Agencia,
 )
 from .serializers import (
     TipoSolicitudSerializer, AdministradoraSerializer, CategoriaCausalSerializer,
     TipoCausalSerializer, UnidadSerializer, TipoRegionalSerializer,
-    FormularioContribucionSerializer, TipoIdentificacionSerializer,
+    TipoIdentificacionSerializer,
     AreaSolicitanteSerializer, EstadoPlazoSerializer, TipoPlanillaSerializer,
     EstadoDocumentacionSerializer, DocumentoSerializer, RegionalSerializer, AgenciaSerializer,
 )
@@ -93,13 +93,6 @@ class UnidadViewSet(BaseCatalogoViewSet):
 class TipoRegionalViewSet(BaseCatalogoViewSet):
     queryset         = TipoRegional.objects.all()
     serializer_class = TipoRegionalSerializer
-    search_fields    = ['nombre']
-    ordering_fields  = ['nombre', 'created_at']
-
-
-class FormularioContribucionViewSet(BaseCatalogoViewSet):
-    queryset         = FormularioContribucion.objects.all()
-    serializer_class = FormularioContribucionSerializer
     search_fields    = ['nombre']
     ordering_fields  = ['nombre', 'created_at']
 

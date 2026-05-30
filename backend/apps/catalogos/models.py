@@ -157,18 +157,6 @@ class TipoRegional(AuditoriaModel):
         return self.nombre
 
 
-class FormularioContribucion(AuditoriaModel):
-    nombre = models.CharField(max_length=200)
-
-    class Meta:
-        verbose_name        = 'Formulario de Contribución'
-        verbose_name_plural = 'Formularios de Contribución'
-        ordering            = ['nombre']
-
-    def __str__(self):
-        return self.nombre
-
-
 class TipoIdentificacion(AuditoriaModel):
     nombre = models.CharField(max_length=100)
     codigo = models.CharField(max_length=20)

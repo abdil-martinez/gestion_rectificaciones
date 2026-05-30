@@ -3,7 +3,7 @@ from django.conf import settings
 from apps.catalogos.models import (
     AuditoriaModel, TipoSolicitud, TipoCausal, TipoPlanilla,
     TipoIdentificacion, Unidad, Regional, Administradora,
-    AreaSolicitante, EstadoDocumentacion, Documento, FormularioContribucion,
+    AreaSolicitante, EstadoDocumentacion, Documento,
 )
 
 ESTADO_CHOICES = [
@@ -161,9 +161,6 @@ class Solicitud(AuditoriaModel):
     )
     area_solicitante    = models.ForeignKey(
         Unidad, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes_unidad'
-    )
-    formulario_contribucion = models.ForeignKey(
-        FormularioContribucion, on_delete=models.SET_NULL, null=True, blank=True, related_name='solicitudes'
     )
     estado              = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='BOR')
     prioridad           = models.CharField(max_length=10, choices=PRIORIDAD_CHOICES, default='NORMAL')

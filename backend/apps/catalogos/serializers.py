@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from .models import (
     TipoSolicitud, Administradora, CategoriaCausal, TipoCausal, Unidad, TipoRegional,
-    FormularioContribucion, TipoIdentificacion, AreaSolicitante,
+    TipoIdentificacion, AreaSolicitante,
     EstadoPlazo, TipoPlanilla, EstadoDocumentacion, Documento,
     Regional, Agencia,
 )
@@ -72,13 +72,6 @@ class TipoRegionalSerializer(AuditoriaReadMixin):
 
     class Meta:
         model  = TipoRegional
-        fields = '__all__'
-        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
-
-
-class FormularioContribucionSerializer(AuditoriaReadMixin):
-    class Meta:
-        model  = FormularioContribucion
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 

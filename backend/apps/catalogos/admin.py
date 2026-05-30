@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     TipoSolicitud, Administradora, TipoCausal, Unidad, TipoRegional,
-    FormularioContribucion, TipoIdentificacion, AreaSolicitante,
+    TipoIdentificacion, AreaSolicitante,
     EstadoPlazo, TipoPlanilla, EstadoDocumentacion, Documento,
     Regional, Agencia,
 )
@@ -64,7 +64,6 @@ class AgenciaAdmin(AuditoriaAdmin):
     search_fields = ('nombre',)
 
 
-admin.site.register(FormularioContribucion)
 admin.site.register(TipoIdentificacion)
 admin.site.register(AreaSolicitante)
 admin.site.register(EstadoPlazo)

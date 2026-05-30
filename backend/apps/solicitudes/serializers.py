@@ -179,7 +179,7 @@ class SolicitudCreateSerializer(serializers.ModelSerializer):
         model  = Solicitud
         fields = [
             'tipo_solicitud', 'tipo_causal', 'administradora', 'regional', 'agencia',
-            'area_solicitante', 'formulario_contribucion', 'prioridad',
+            'area_solicitante', 'prioridad',
             'detalle_causal', 'observaciones', 'fecha_recepcion', 'fecha_limite',
             'asegurado', 'empleador', 'solicitante',
             'asegurado_data', 'empleador_data',
