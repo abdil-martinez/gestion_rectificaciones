@@ -39,6 +39,34 @@ const ESTADOS = [
   { value: 'ANU',  label: 'Anulado' },
 ]
 
+const ESTADOS_CERRADOS = ['FIN', 'ANU', 'RECT', 'RECH']
+
+function PlazoChip({ sol }) {
+  if (!sol.fecha_limite || ESTADOS_CERRADOS.includes(sol.estado)) {
+    return <Typography variant="body2" color="text.disabled">—</Typography>
+  }
+  const dias = dayjs(sol.fecha_limite).diff(dayjs().startOf('day'), 'day')
+  if (dias < 0) {
+    return (
+      <Chip size="small"
+        label={`Vencida ${Math.abs(dias)}d`}
+        sx={{ bgcolor: '#f4433618', color: '#f44336', fontWeight: 700, fontSize: '0.68rem', height: 20 }} />
+    )
+  }
+  if (dias <= 7) {
+    return (
+      <Chip size="small"
+        label={`${dias}d restantes`}
+        sx={{ bgcolor: '#ff980018', color: '#ff9800', fontWeight: 700, fontSize: '0.68rem', height: 20 }} />
+    )
+  }
+  return (
+    <Chip size="small"
+      label={`${dias}d restantes`}
+      sx={{ bgcolor: '#4caf5018', color: '#4caf50', fontWeight: 700, fontSize: '0.68rem', height: 20 }} />
+  )
+}
+
 const showBandejaTab = (rol) => rol === 'ANALIST'
 
 export default function SolicitudList() {
@@ -59,6 +87,7 @@ export default function SolicitudList() {
   const [tipoRegional, setTipoRegional] = useState('')
   const [regional, setRegional]         = useState('')
   const [agencia, setAgencia]           = useState('')
+  const [plazo, setPlazo]               = useState('')
   const [exportLoading, setExportLoading] = useState(false)
 
   // Selección masiva
@@ -86,6 +115,7 @@ export default function SolicitudList() {
       || (isAnalist && activeTab === 1 ? user?.regional : undefined)
       || undefined,
     agencia:  agencia || undefined,
+    plazo:    plazo   || undefined,
     // Tab 0 y 1 del analista: vista pública del tipo_regional/regional (todas=true sin filtro personal)
     // Tab 2 del analista: solo sus solicitudes (analista_bandeja=true)
     ...(isAnalist && activeTab !== 2 ? { todas: 'true' } : {}),
@@ -272,6 +302,18 @@ export default function SolicitudList() {
                 </Select>
               </FormControl>
             </Grid>
+            <Grid item xs={6} sm={2} md={1}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Plazo</InputLabel>
+                <Select value={plazo} label="Plazo" onChange={(e) => { setPlazo(e.target.value); setPage(0) }}>
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="EN_PLAZO">En plazo</MenuItem>
+                  <MenuItem value="POR_VENCER">Por vencer</MenuItem>
+                  <MenuItem value="VENCIDA">Vencida</MenuItem>
+                  <MenuItem value="CERRADA">Cerrada</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
             <Grid item xs={6} sm={2} md={2}>
               <FormControl fullWidth size="small">
                 <InputLabel>Tipo Regional</InputLabel>
@@ -309,17 +351,18 @@ export default function SolicitudList() {
             </Grid>
             <Grid item xs={12} sm={2} md={1}>
               <Button fullWidth variant="outlined" size="small"
-                onClick={() => { setSearch(''); setEstado(''); setPrioridad(''); setTipoRegional(''); setRegional(''); setAgencia(''); setFechaDesde(''); setFechaHasta(''); setPage(0); setSelected([]) }}>
+                onClick={() => { setSearch(''); setEstado(''); setPrioridad(''); setPlazo(''); setTipoRegional(''); setRegional(''); setAgencia(''); setFechaDesde(''); setFechaHasta(''); setPage(0); setSelected([]) }}>
                 Limpiar
               </Button>
             </Grid>
           </Grid>
           {/* Chips de filtros activos */}
-          {(search || estado || prioridad || tipoRegional || regional || agencia || fechaDesde || fechaHasta) && (
+          {(search || estado || prioridad || plazo || tipoRegional || regional || agencia || fechaDesde || fechaHasta) && (
             <Box sx={{ mt: 1.5, display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
               {search       && <Chip size="small" label={`Búsqueda: "${search}"`}     onDelete={() => { setSearch('');       setPage(0) }} />}
               {estado       && <Chip size="small" label={`Estado: ${ESTADOS.find((e) => e.value === estado)?.label || estado}`} onDelete={() => { setEstado('');       setPage(0) }} />}
               {prioridad    && <Chip size="small" label={`Prioridad: ${prioridad}`}   onDelete={() => { setPrioridad('');    setPage(0) }} />}
+              {plazo        && <Chip size="small" label={`Plazo: ${{ EN_PLAZO: 'En plazo', POR_VENCER: 'Por vencer', VENCIDA: 'Vencida', CERRADA: 'Cerrada' }[plazo]}`} onDelete={() => { setPlazo(''); setPage(0) }} />}
               {tipoRegional && <Chip size="small" label={`Tipo Regional: ${tiposRegionalData.find((t) => t.id === Number(tipoRegional))?.nombre || tipoRegional}`} onDelete={() => { setTipoRegional(''); setRegional(''); setAgencia(''); setPage(0) }} />}
               {regional     && <Chip size="small" label={`Regional: ${regionalesData.find((r) => r.id === Number(regional))?.nombre || regional}`} onDelete={() => { setRegional(''); setAgencia(''); setPage(0) }} />}
               {agencia      && <Chip size="small" label={`Agencia: ${agenciasData.find((a) => a.id === Number(agencia))?.nombre || agencia}`} onDelete={() => { setAgencia(''); setPage(0) }} />}
@@ -373,6 +416,7 @@ export default function SolicitudList() {
                     <TableCell>Regional</TableCell>
                     <TableCell>Agencia</TableCell>
                     <TableCell>Estado</TableCell>
+                    <TableCell>Plazo</TableCell>
                     <TableCell>Prioridad</TableCell>
                     <TableCell>Analista</TableCell>
                     <TableCell>Creador</TableCell>
@@ -384,7 +428,7 @@ export default function SolicitudList() {
                 <TableBody>
                   {rows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={canBulkAssign ? 16 : 15} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                      <TableCell colSpan={canBulkAssign ? 17 : 16} align="center" sx={{ py: 4, color: 'text.secondary' }}>
                         {isAnalist && activeTab === 0
                           ? 'No se encontraron solicitudes en su tipo de regional.'
                           : isAnalist && activeTab === 1
@@ -432,6 +476,7 @@ export default function SolicitudList() {
                           <Typography variant="body2" color="text.secondary">{sol.agencia_nombre || '—'}</Typography>
                         </TableCell>
                         <TableCell><StatusChip estado={sol.estado} /></TableCell>
+                        <TableCell><PlazoChip sol={sol} /></TableCell>
                         <TableCell><PrioridadChip prioridad={sol.prioridad} /></TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">{sol.analista_nombre || '—'}</Typography>

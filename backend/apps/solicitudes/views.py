@@ -56,6 +56,26 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         if exclude_estados:
             qs = qs.exclude(estado__in=[e.strip() for e in exclude_estados.split(',')])
 
+        # Filtro por plazo
+        plazo = self.request.query_params.get('plazo')
+        if plazo:
+            import datetime
+            today = timezone.now().date()
+            estados_cerrados = ['FIN', 'ANU', 'RECT', 'RECH']
+            if plazo == 'VENCIDA':
+                qs = qs.filter(fecha_limite__lt=today).exclude(estado__in=estados_cerrados)
+            elif plazo == 'POR_VENCER':
+                qs = qs.filter(
+                    fecha_limite__gte=today,
+                    fecha_limite__lte=today + datetime.timedelta(days=7)
+                ).exclude(estado__in=estados_cerrados)
+            elif plazo == 'EN_PLAZO':
+                qs = qs.filter(
+                    fecha_limite__gt=today + datetime.timedelta(days=7)
+                ).exclude(estado__in=estados_cerrados)
+            elif plazo == 'CERRADA':
+                qs = qs.filter(estado__in=estados_cerrados)
+
         todas            = self.request.query_params.get('todas') == 'true'
         analista_bandeja = self.request.query_params.get('analista_bandeja') == 'true'
 
