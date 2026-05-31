@@ -46,12 +46,16 @@ import FormularioRegularizacionPDF from '../../components/FormularioRegularizaci
 import NotificacionesPanel from '../../components/NotificacionesPanel'
 
 const ACCION_ICONS = {
-  RECT: { icon: <CheckCircleIcon />, color: '#4caf50' },
-  RECH: { icon: <CancelIcon />,      color: '#f44336' },
-  DEV:  { icon: <ReplayIcon />,      color: '#9c27b0' },
-  FIN:  { icon: <CheckCircleIcon />, color: '#1b5e20' },
-  PEND: { icon: <PlayArrowIcon />,   color: '#2196f3' },
-  ASIG: { icon: <AssignmentReturnIcon />, color: '#ff9800' },
+  RECT:           { icon: <CheckCircleIcon />,      color: '#4caf50' },
+  RECH:           { icon: <CancelIcon />,           color: '#f44336' },
+  DEV:            { icon: <ReplayIcon />,           color: '#9c27b0' },
+  FIN:            { icon: <CheckCircleIcon />,      color: '#1b5e20' },
+  PEND:           { icon: <PlayArrowIcon />,        color: '#2196f3' },
+  ASIG:           { icon: <AssignmentReturnIcon />, color: '#ff9800' },
+  DOC_SUBIDO:     { icon: <UploadFileIcon />,       color: '#26a69a' },
+  DOC_REEMPLAZADO:{ icon: <UploadFileIcon />,       color: '#42a5f5' },
+  DOC_ELIMINADO:  { icon: <DeleteIcon />,           color: '#ef5350' },
+  DOC_RECIBIDO:   { icon: <AttachFileIcon />,       color: '#66bb6a' },
 }
 
 function FormulariosFPC({ solicitudId }) {
@@ -1032,7 +1036,7 @@ export default function SolicitudDetail() {
                   ) : (
                     <Box sx={{ maxHeight: 420, overflowY: 'auto', pr: 1 }}>
                       {bitacora.map((entry, idx) => {
-                        const icon = ACCION_ICONS[entry.estado_nuevo] || { icon: <PlayArrowIcon />, color: ORO }
+                        const icon = ACCION_ICONS[entry.accion] || ACCION_ICONS[entry.estado_nuevo] || { icon: <PlayArrowIcon />, color: ORO }
                         return (
                           <Box
                             key={entry.id}

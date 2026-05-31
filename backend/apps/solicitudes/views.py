@@ -482,8 +482,22 @@ class EmpleadorViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         serializer.save(usuario_creador=self.request.user)
 
 
+def _seccion_doc(instance):
+    obs = instance.observacion or ''
+    if obs == '__NOTIF_ASE__':
+        return 'Notificación Asegurado'
+    if obs == '__NOTIF_EMP__':
+        return 'Notificación Empleador'
+    if obs == 'FORM_REGULARIZACION':
+        return 'Formulario de Regularización'
+    if instance.documento_id:
+        nombre = instance.documento.descripcion if instance.documento else 'Documento de respaldo'
+        return f'Documentación de Respaldo — {nombre}'
+    return f'Form Interno — {obs}' if obs else 'Form Interno'
+
+
 class DocumentoRespaldoViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
-    queryset           = DocumentoRespaldo.objects.select_related('documento', 'estado_documentacion').all()
+    queryset           = DocumentoRespaldo.objects.select_related('documento', 'estado_documentacion', 'solicitud').all()
     serializer_class   = DocumentoRespaldoSerializer
     permission_classes = [IsAuthenticated]
     filter_backends    = [DjangoFilterBackend]
@@ -491,10 +505,67 @@ class DocumentoRespaldoViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
     parser_classes     = [parsers.MultiPartParser, parsers.FormParser, parsers.JSONParser]
 
     def perform_create(self, serializer):
-        serializer.save(usuario_creador=self.request.user)
+        instance = serializer.save(usuario_creador=self.request.user)
+        seccion  = _seccion_doc(instance)
+        if instance.archivo:
+            nombre_archivo = instance.archivo.name.split('/')[-1]
+            accion     = 'DOC_SUBIDO'
+            comentario = f'Archivo adjuntado en "{seccion}": {nombre_archivo}'
+        elif instance.documento_id:
+            doc_nombre = instance.documento.descripcion if instance.documento else 'Documento'
+            accion     = 'DOC_RECIBIDO'
+            comentario = f'Documento marcado como recibido: {doc_nombre}'
+        else:
+            return
+        registrar_bitacora(
+            solicitud=instance.solicitud,
+            usuario=self.request.user,
+            estado_anterior=instance.solicitud.estado,
+            estado_nuevo=instance.solicitud.estado,
+            accion=accion,
+            comentario=comentario,
+            ip=get_client_ip(self.request),
+        )
 
     def perform_update(self, serializer):
-        serializer.save(usuario_modificador=self.request.user)
+        instance = serializer.save(usuario_modificador=self.request.user)
+        if 'archivo' in serializer.validated_data and instance.archivo:
+            seccion        = _seccion_doc(instance)
+            nombre_archivo = instance.archivo.name.split('/')[-1]
+            registrar_bitacora(
+                solicitud=instance.solicitud,
+                usuario=self.request.user,
+                estado_anterior=instance.solicitud.estado,
+                estado_nuevo=instance.solicitud.estado,
+                accion='DOC_REEMPLAZADO',
+                comentario=f'Archivo reemplazado en "{seccion}": {nombre_archivo}',
+                ip=get_client_ip(self.request),
+            )
+
+    def destroy(self, request, *args, **kwargs):
+        instance  = self.get_object()
+        seccion   = _seccion_doc(instance)
+        solicitud = instance.solicitud
+        if instance.archivo:
+            detalle = instance.archivo.name.split('/')[-1]
+        elif instance.documento_id:
+            detalle = instance.documento.descripcion if instance.documento else 'Documento'
+        else:
+            detalle = 'adjunto'
+        instance.delete(user=request.user)
+        registrar_bitacora(
+            solicitud=solicitud,
+            usuario=request.user,
+            estado_anterior=solicitud.estado,
+            estado_nuevo=solicitud.estado,
+            accion='DOC_ELIMINADO',
+            comentario=f'Documento eliminado de "{seccion}": {detalle}',
+            ip=get_client_ip(request),
+        )
+        return Response(
+            {'detail': 'Registro eliminado. Puede restaurarlo si fue un error.'},
+            status=status.HTTP_200_OK,
+        )
 
 
 class SolicitanteViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
