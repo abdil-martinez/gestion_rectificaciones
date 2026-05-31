@@ -37,10 +37,9 @@ const ESTADOS = [
   { value: 'RECH', label: 'Rechazado' },
   { value: 'DEV',  label: 'Devuelto' },
   { value: 'FIN',  label: 'Finalizado' },
-  { value: 'ANU',  label: 'Anulado' },
 ]
 
-const ESTADOS_CERRADOS = ['FIN', 'ANU', 'RECT', 'RECH']
+const ESTADOS_CERRADOS = ['FIN', 'RECT', 'RECH']
 
 // Colors indexed by umbral position (ASC by limite_dias)
 const UMBRAL_COLORS = [
@@ -58,7 +57,7 @@ function PlazoChip({ sol, umbrales }) {
   }
 
   if (ESTADOS_CERRADOS.includes(sol.estado)) {
-    const subLabel = { FIN: 'Finalizado', ANU: 'Anulado', RECT: 'Rectificado', RECH: 'Rechazado' }[sol.estado] || sol.estado
+    const subLabel = { FIN: 'Finalizado', RECT: 'Rectificado', RECH: 'Rechazado' }[sol.estado] || sol.estado
     return (
       <Box>
         <Chip size="small" label="CERRADA"

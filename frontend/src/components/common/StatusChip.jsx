@@ -26,7 +26,6 @@ const ESTADO_CONFIG = {
   RECH: { label: 'Rechazado',   color: 'error',     sx: { transition: 'all 0.2s', '&:hover': { transform: 'scale(1.05)' } } },
   DEV:  { label: 'Devuelto',    color: 'secondary', sx: { transition: 'all 0.2s' } },
   FIN:  { label: 'Finalizado',  color: 'success',   sx: { bgcolor: '#1b5e20', color: '#fff' } },
-  ANU:  { label: 'Anulado',     color: 'error',     sx: { bgcolor: '#4a0000', color: '#ccc' } },
 }
 
 const PRIORIDAD_CONFIG = {

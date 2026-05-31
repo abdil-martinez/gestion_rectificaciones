@@ -26,7 +26,7 @@ class DashboardView(APIView):
 
         vencidas = Solicitud.objects.filter(
             fecha_limite__lt=hoy
-        ).exclude(estado__in=['FIN', 'ANU', 'RECT']).count()
+        ).exclude(estado__in=['FIN', 'RECT']).count()
 
         por_regional = list(
             Solicitud.objects.filter(regional__isnull=False)

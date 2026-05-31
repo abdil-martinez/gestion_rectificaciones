@@ -25,7 +25,7 @@ import { useAuthStore } from '../../store/authStore'
 import { ORO } from '../../theme'
 
 function PlazoIndicator({ fechaLimite, estado }) {
-  if (!fechaLimite || ['FIN', 'ANU', 'RECT'].includes(estado)) {
+  if (!fechaLimite || ['FIN', 'RECT'].includes(estado)) {
     return <Typography variant="caption" color="text.secondary">—</Typography>
   }
   const diasRestantes = dayjs(fechaLimite).diff(dayjs(), 'day')
@@ -110,7 +110,7 @@ export default function WorkflowView() {
   // ── Queries de bandeja ───────────────────────────────────────────────────────
   const myParams = {
     ...(isSuperAdmin
-      ? { exclude_estados: !applied.estado ? 'ASIG,REV,DEV,RECH,RECT,ANU,FIN' : undefined }
+      ? { exclude_estados: !applied.estado ? 'ASIG,REV,DEV,RECH,RECT,FIN' : undefined }
       : { analista_bandeja: 'true' }
     ),
     search:                  applied.search    || undefined,
@@ -125,7 +125,7 @@ export default function WorkflowView() {
     search:                  applied.search    || undefined,
     prioridad:               applied.prioridad || undefined,
     estado:                  applied.estado    || undefined,
-    exclude_estados:         !applied.estado ? 'DEV,RECH,RECT,ANU,FIN' : undefined,
+    exclude_estados:         !applied.estado ? 'DEV,RECH,RECT,FIN' : undefined,
     regional__tipo_regional: applied.tipo_regional || undefined,
     regional:                applied.regional  || undefined,
     agencia:                 applied.agencia   || undefined,
@@ -308,7 +308,6 @@ export default function WorkflowView() {
                   <MenuItem value="RECH">Rechazado</MenuItem>
                   <MenuItem value="DEV">Devuelto</MenuItem>
                   <MenuItem value="FIN">Finalizado</MenuItem>
-                  <MenuItem value="ANU">Anulado</MenuItem>
                 </Select>
               </FormControl>
             </Grid>

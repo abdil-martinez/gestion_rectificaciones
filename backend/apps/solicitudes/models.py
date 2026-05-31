@@ -16,7 +16,6 @@ ESTADO_CHOICES = [
     ('RECH', 'Rechazado'),
     ('DEV',  'Devuelto'),
     ('FIN',  'Finalizado'),
-    ('ANU',  'Anulado'),
 ]
 
 TIPO_PERSONA_CHOICES = [
@@ -209,7 +208,7 @@ class Solicitud(AuditoriaModel):
     @property
     def vencida(self):
         from django.utils import timezone
-        if self.fecha_limite and self.estado not in ('FIN', 'ANU', 'RECT'):
+        if self.fecha_limite and self.estado not in ('FIN', 'RECT'):
             return timezone.now().date() > self.fecha_limite
         return False
 

@@ -961,7 +961,6 @@ export default function SolicitudDetail() {
     RECH: { label: 'Rechazar',    color: 'error',   icon: <CancelIcon /> },
     DEV:  { label: 'Devolver',    color: 'secondary',icon: <ReplayIcon /> },
     FIN:  { label: 'Finalizar',   color: 'success', icon: <CheckCircleIcon /> },
-    ANU:  { label: 'Anular',      color: 'error',   icon: <CancelIcon /> },
   }
 
   const handleCambiarEstado = async () => {

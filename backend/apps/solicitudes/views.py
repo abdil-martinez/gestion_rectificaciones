@@ -62,7 +62,7 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
             import datetime
             from apps.catalogos.models import EstadoPlazo as EstadoPlazoModel
             today = timezone.now().date()
-            estados_cerrados = ['FIN', 'ANU', 'RECT', 'RECH']
+            estados_cerrados = ['FIN', 'RECT', 'RECH']
 
             if plazo == 'CERRADA':
                 qs = qs.filter(estado__in=estados_cerrados)
@@ -104,8 +104,8 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
             # - trabajo activo (asignado a él, en cualquier estado operativo)
             # - solicitudes procesadas/devueltas/anuladas donde él es el creador
             qs = qs.filter(
-                Q(analista_asignado=user, estado__in=['ASIG', 'REV', 'DEV', 'RECT', 'RECH', 'ANU']) |
-                Q(usuario_creador=user, estado__in=['DEV', 'RECT', 'RECH', 'ANU'])
+                Q(analista_asignado=user, estado__in=['ASIG', 'REV', 'DEV', 'RECT', 'RECH']) |
+                Q(usuario_creador=user, estado__in=['DEV', 'RECT', 'RECH'])
             )
         elif user.rol == 'ANALIST' and not todas:
             if self.request.query_params.get('analista_asignado'):
@@ -192,9 +192,6 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
 
         if nuevo_estado == 'ASIG':
             solicitud.asignado_por = request.user
-
-        if nuevo_estado == 'ANU' and not solicitud.analista_asignado_id and solicitud.usuario_creador_id:
-            solicitud.analista_asignado = solicitud.usuario_creador
 
         if nuevo_estado in ('RECT', 'FIN'):
             solicitud.fecha_resolucion = timezone.now().date()

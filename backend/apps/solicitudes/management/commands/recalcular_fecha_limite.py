@@ -24,7 +24,7 @@ class Command(BaseCommand):
         dias_plazo = en_plazo.limite_dias
         self.stdout.write(f'EstadoPlazo "En Plazo": {dias_plazo} días')
 
-        ESTADOS_CERRADOS = ['FIN', 'ANU', 'RECT', 'RECH']
+        ESTADOS_CERRADOS = ['FIN', 'RECT', 'RECH']
         solicitudes = Solicitud.objects.exclude(estado__in=ESTADOS_CERRADOS)
         self.stdout.write(f'Solicitudes abiertas: {solicitudes.count()}')
 

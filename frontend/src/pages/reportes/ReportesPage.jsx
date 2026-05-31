@@ -31,7 +31,6 @@ const ESTADOS = [
   { value: 'RECH', label: 'Rechazado' },
   { value: 'DEV',  label: 'Devuelto' },
   { value: 'FIN',  label: 'Finalizado' },
-  { value: 'ANU',  label: 'Anulado' },
 ]
 const PRIORIDADES = [
   { value: 'BAJA',    label: 'Baja' },

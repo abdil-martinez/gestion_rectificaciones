@@ -1,33 +1,27 @@
 from django.utils import timezone
 
 TRANSICIONES_VALIDAS = {
-    'BOR':  ['PEND', 'ANU'],
-    'PEND': ['ASIG', 'ANU'],
-    'ASIG': ['REV', 'DEV', 'ANU'],
+    'BOR':  ['PEND'],
+    'PEND': ['ASIG'],
+    'ASIG': ['REV', 'DEV'],
     'REV':  ['RECT', 'RECH', 'DEV'],
-    'DEV':  ['PEND', 'ANU'],
+    'DEV':  ['PEND'],
     'RECT': ['FIN'],
-    'RECH': ['FIN', 'ANU'],
+    'RECH': ['FIN'],
     'FIN':  [],
-    'ANU':  [],
 }
 
 ROLES_POR_TRANSICION = {
     ('BOR',  'PEND'): ['ADMIN', 'SUPER', 'ANALIST'],
-    ('BOR',  'ANU'):  ['ADMIN', 'SUPER'],
     ('PEND', 'ASIG'): ['ADMIN', 'SUPER'],
-    ('PEND', 'ANU'):  ['ADMIN', 'SUPER'],
     ('ASIG', 'REV'):  ['ADMIN', 'SUPER', 'ANALIST'],
     ('ASIG', 'DEV'):  ['ADMIN', 'SUPER', 'ANALIST'],
-    ('ASIG', 'ANU'):  ['ADMIN', 'SUPER'],
     ('REV',  'RECT'): ['ADMIN', 'SUPER'],
     ('REV',  'RECH'): ['ADMIN', 'SUPER'],
     ('REV',  'DEV'):  ['ADMIN', 'SUPER', 'ANALIST'],
     ('DEV',  'PEND'): ['ADMIN', 'SUPER', 'ANALIST'],
-    ('DEV',  'ANU'):  ['ADMIN', 'SUPER'],
     ('RECT', 'FIN'):  ['ADMIN', 'SUPER', 'ANALIST'],
     ('RECH', 'FIN'):  ['ADMIN', 'SUPER', 'ANALIST'],
-    ('RECH', 'ANU'):  ['ADMIN', 'SUPER'],
 }
 
 ETIQUETAS_ESTADO = {
@@ -39,7 +33,6 @@ ETIQUETAS_ESTADO = {
     'RECH': 'Rechazado',
     'DEV':  'Devuelto',
     'FIN':  'Finalizado',
-    'ANU':  'Anulado',
 }
 
 
