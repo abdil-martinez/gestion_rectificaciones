@@ -3,7 +3,7 @@ from .models import (
     TipoSolicitud, Administradora, TipoCausal, Unidad, TipoRegional,
     TipoIdentificacion, AreaSolicitante,
     EstadoPlazo, TipoPlanilla, EstadoDocumentacion, Documento,
-    Regional, Agencia,
+    EstadoNotificacion, PlantillaObservacion, Regional, Agencia,
 )
 
 
@@ -33,9 +33,10 @@ class AdministradoraAdmin(AuditoriaAdmin):
 
 @admin.register(TipoCausal)
 class TipoCausalAdmin(AuditoriaAdmin):
-    list_display  = ('nombre', 'tipo', 'created_at')
-    list_filter   = ('tipo',)
-    search_fields = ('nombre',)
+    list_display       = ('nombre', 'tipo', 'created_at')
+    list_filter        = ('tipo',)
+    search_fields      = ('nombre',)
+    filter_horizontal  = ('documentos',)
 
 
 @admin.register(Unidad)
@@ -70,3 +71,5 @@ admin.site.register(EstadoPlazo)
 admin.site.register(TipoPlanilla)
 admin.site.register(EstadoDocumentacion)
 admin.site.register(Documento)
+admin.site.register(EstadoNotificacion)
+admin.site.register(PlantillaObservacion)

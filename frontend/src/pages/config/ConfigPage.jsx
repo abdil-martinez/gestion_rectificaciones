@@ -4,7 +4,7 @@ import {
   ListItemText, Divider, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, IconButton, Button, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Tooltip, Alert,
-  CircularProgress, Chip, MenuItem,
+  CircularProgress, Chip, MenuItem, Checkbox, FormControlLabel, FormGroup,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
@@ -30,6 +30,8 @@ const CATALOGOS = [
   { key: 'documentos',             label: 'Documentos',                  fields: [{ name: 'codigo', label: 'Código', required: true }, { name: 'descripcion', label: 'Descripción', required: true }] },
   { key: 'areaSolicitante',        label: 'Áreas Solicitantes',          fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'codigo', label: 'Código', required: true }] },
   { key: 'estadoPlazo',            label: 'Estados de Plazo',            fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'limite_dias', label: 'Días Límite', type: 'number', required: true }] },
+  { key: 'estadoNotificacion',     label: 'Estados de Notificación',     fields: [{ name: 'nombre', label: 'Nombre', required: true }, { name: 'codigo', label: 'Código', required: true }] },
+  { key: 'plantillaObservacion',   label: 'Plantillas de Observación',   fields: [{ name: 'estado_notificacion', label: 'Estado de Notificación', type: 'fk_select', catalog: 'estadoNotificacion', optionLabel: 'nombre', displayField: 'estado_notificacion_nombre', required: true }, { name: 'nombre', label: 'Nombre de la plantilla', required: true }, { name: 'texto', label: 'Texto de la observación', required: true, multiline: true }] },
   { key: 'tipoRegional',           label: 'Tipos de Regional',           fields: [{ name: 'nombre', label: 'Nombre', required: true }] },
 ]
 
@@ -60,6 +62,7 @@ function FkSelectField({ field, fieldDef, error, helperText }) {
 
 function RecordDialog({ open, onClose, catalogo, record, onSave }) {
   const isEdit = !!record
+  const isTipoCausal = catalogo?.key === 'tipoCausal'
 
   const defaultValues = React.useMemo(() => {
     const def = {}
@@ -75,8 +78,29 @@ function RecordDialog({ open, onClose, catalogo, record, onSave }) {
     reset(defaultValues)
   }, [defaultValues, reset])
 
+  const { data: allDocumentos = [] } = useQuery({
+    queryKey: ['config', 'documentos'],
+    queryFn: () => catalogosApi.documentos.getAll({ page_size: 200 }).then((r) => r.data.results || r.data),
+    enabled: isTipoCausal && open,
+  })
+
+  const [selectedDocs, setSelectedDocs] = React.useState([])
+
+  React.useEffect(() => {
+    if (isTipoCausal) {
+      setSelectedDocs(record?.documentos || [])
+    }
+  }, [record, isTipoCausal, open])
+
+  const toggleDoc = (id) => {
+    setSelectedDocs((prev) =>
+      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]
+    )
+  }
+
   const onSubmit = async (data) => {
-    await onSave(data)
+    const payload = isTipoCausal ? { ...data, documentos: selectedDocs } : data
+    await onSave(payload)
   }
 
   return (
@@ -119,6 +143,8 @@ function RecordDialog({ open, onClose, catalogo, record, onSave }) {
                     label={f.label + (f.required ? ' *' : '')}
                     fullWidth
                     type={f.type || 'text'}
+                    multiline={!!f.multiline}
+                    rows={f.multiline ? 4 : undefined}
                     error={!!errors[f.name]}
                     helperText={errors[f.name]?.message}
                   />
@@ -126,6 +152,42 @@ function RecordDialog({ open, onClose, catalogo, record, onSave }) {
               }
             />
           ))}
+
+          {isTipoCausal && (
+            <Box>
+              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+                Documentos requeridos
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                Si no seleccionas ninguno, se mostrarán todos los documentos del catálogo.
+              </Typography>
+              {allDocumentos.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">Cargando documentos…</Typography>
+              ) : (
+                <FormGroup sx={{ pl: 0.5, maxHeight: 220, overflowY: 'auto', border: '1px solid #2A3D6B', borderRadius: 1, px: 1.5, py: 0.5 }}>
+                  {allDocumentos.map((doc) => (
+                    <FormControlLabel
+                      key={doc.id}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={selectedDocs.includes(doc.id)}
+                          onChange={() => toggleDoc(doc.id)}
+                          sx={{ color: ORO, '&.Mui-checked': { color: ORO } }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2">
+                          <Box component="span" sx={{ fontFamily: 'monospace', color: ORO, mr: 1 }}>{doc.codigo}</Box>
+                          {doc.descripcion}
+                        </Typography>
+                      }
+                    />
+                  ))}
+                </FormGroup>
+              )}
+            </Box>
+          )}
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>

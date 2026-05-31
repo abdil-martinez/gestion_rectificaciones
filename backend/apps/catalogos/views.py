@@ -7,14 +7,16 @@ from .models import (
     TipoSolicitud, Administradora, CategoriaCausal, TipoCausal, Unidad, TipoRegional,
     TipoIdentificacion, AreaSolicitante,
     EstadoPlazo, TipoPlanilla, EstadoDocumentacion, Documento,
-    Regional, Agencia,
+    EstadoNotificacion, PlantillaObservacion, Regional, Agencia,
 )
 from .serializers import (
     TipoSolicitudSerializer, AdministradoraSerializer, CategoriaCausalSerializer,
     TipoCausalSerializer, UnidadSerializer, TipoRegionalSerializer,
     TipoIdentificacionSerializer,
     AreaSolicitanteSerializer, EstadoPlazoSerializer, TipoPlanillaSerializer,
-    EstadoDocumentacionSerializer, DocumentoSerializer, RegionalSerializer, AgenciaSerializer,
+    EstadoDocumentacionSerializer, DocumentoSerializer,
+    EstadoNotificacionSerializer, PlantillaObservacionSerializer,
+    RegionalSerializer, AgenciaSerializer,
 )
 
 
@@ -137,6 +139,21 @@ class DocumentoViewSet(BaseCatalogoViewSet):
     serializer_class = DocumentoSerializer
     search_fields    = ['codigo', 'descripcion']
     ordering_fields  = ['codigo', 'descripcion', 'created_at']
+
+
+class EstadoNotificacionViewSet(BaseCatalogoViewSet):
+    queryset         = EstadoNotificacion.objects.all()
+    serializer_class = EstadoNotificacionSerializer
+    search_fields    = ['nombre', 'codigo']
+    ordering_fields  = ['nombre', 'codigo', 'created_at']
+
+
+class PlantillaObservacionViewSet(BaseCatalogoViewSet):
+    queryset         = PlantillaObservacion.objects.select_related('estado_notificacion').all()
+    serializer_class = PlantillaObservacionSerializer
+    filterset_fields = ['estado_notificacion']
+    search_fields    = ['nombre']
+    ordering_fields  = ['nombre', 'estado_notificacion__nombre', 'created_at']
 
 
 class RegionalViewSet(BaseCatalogoViewSet):

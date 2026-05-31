@@ -3,7 +3,7 @@ import {
   Box, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   Grid, TextField, Typography, Table, TableHead, TableRow,
   TableCell, TableBody, Tabs, Tab, CircularProgress, Divider,
-  Chip,
+  MenuItem,
 } from '@mui/material'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import NotificationsIcon from '@mui/icons-material/Notifications'
@@ -19,29 +19,90 @@ import { ORO, NAVY2 } from '../theme'
 import NotificacionAsePDF from './NotificacionAsePDF'
 import NotificacionEmpPDF from './NotificacionEmpPDF'
 import { getDocumentosRespaldo, createDocumentoRespaldo, updateDocumentoRespaldo } from '../api/solicitudes'
+import catalogosApi from '../api/catalogos'
 
 const OBS_ASE = '__NOTIF_ASE__'
 const OBS_EMP = '__NOTIF_EMP__'
 const BASE_URL = 'http://localhost:8000'
 
+const COLOR_POR_CODIGO = {
+  AJUSTADO:    '#4CAF50',
+  RECTIFICADA: '#4C9FE8',
+  RECHAZADA:   '#f44336',
+}
+
 const headSx = { py: 0.7, px: 1, color: ORO, fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', borderBottom: `2px solid #2A3D6B`, whiteSpace: 'nowrap' }
 const cellSx = { py: 0.6, px: 1, fontSize: '0.82rem', borderBottom: '1px solid #2A3D6B' }
 
-function NotifForm({ tipo, sol, formularios, open, onClose }) {
+function NotifForm({ tipo, sol, formularios, open, onClose, notifPreselect }) {
   const isAse = tipo === 'ase'
   const [tab, setTab]         = useState(0)
   const [loading, setLoading] = useState(false)
 
-  const [lugar,           setLugar]           = useState('La Paz')
-  const [fecha,           setFecha]           = useState(dayjs().format('YYYY-MM-DD'))
-  const [cite,            setCite]            = useState(`CITE-GNARC-${dayjs().format('YYYY')}-`)
-  const [estadoResultado, setEstadoResultado] = useState('APROBADA')
-  const [firmaNombre,     setFirmaNombre]     = useState('')
-  const [firmaCargo,      setFirmaCargo]      = useState('')
-  const [cargoRepLegal,   setCargoRepLegal]   = useState('')
+  const [lugar,            setLugar]            = useState('La Paz')
+  const [fecha,            setFecha]            = useState(dayjs().format('YYYY-MM-DD'))
+  const [cite,             setCite]             = useState(`CITE-GNARC-${dayjs().format('YYYY')}-`)
+  const [estadoId,         setEstadoId]         = useState('')
+  const [plantillaId,      setPlantillaId]      = useState('')
+  const [textoObservacion, setTextoObservacion] = useState('')
+  const [firmaNombre,      setFirmaNombre]      = useState('')
+  const [firmaCargo,       setFirmaCargo]       = useState('')
+  const [cargoRepLegal,    setCargoRepLegal]    = useState('')
   const [fpcsObs, setFpcsObs] = useState(
     (formularios || []).map((f) => ({ ...f, observacion: '' }))
   )
+
+  const { data: estadosNotif = [] } = useQuery({
+    queryKey: ['estado-notificacion'],
+    queryFn:  () => catalogosApi.estadoNotificacion.getAll({ page_size: 100 }).then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+    enabled:  open,
+  })
+
+  const { data: todasPlantillas = [] } = useQuery({
+    queryKey: ['plantilla-observacion'],
+    queryFn:  () => catalogosApi.plantillaObservacion.getAll({ page_size: 200 }).then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+    enabled:  open,
+  })
+
+  const plantillasDe = estadoId
+    ? todasPlantillas.filter((p) => p.estado_notificacion === Number(estadoId))
+    : []
+
+  const estadoNombre = estadosNotif.find((e) => e.id === Number(estadoId))?.nombre || ''
+
+  const skipPlantillaResetRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (skipPlantillaResetRef.current) {
+      skipPlantillaResetRef.current = false
+      return
+    }
+    setPlantillaId('')
+    setTextoObservacion('')
+  }, [estadoId])
+
+  React.useEffect(() => {
+    if (!plantillaId) return
+    const p = todasPlantillas.find((p) => p.id === Number(plantillaId))
+    if (!p) return
+    setTextoObservacion(p.texto)
+    setFpcsObs((rows) => rows.map((r) => ({ ...r, observacion: p.texto })))
+  }, [plantillaId, todasPlantillas])
+
+  // Aplicar preselect: primero de notifPreselect prop, si no del dato persistido en sol
+  React.useEffect(() => {
+    if (estadosNotif.length === 0) return
+    const codigo  = notifPreselect?.estadoCodigo || sol?.notif_estado_codigo
+    const plantId = notifPreselect?.plantillaId  || sol?.notif_plantilla
+    if (!codigo) return
+    const estadoObj = estadosNotif.find((e) => e.codigo === codigo)
+    if (!estadoObj) return
+    skipPlantillaResetRef.current = true
+    setEstadoId(estadoObj.id)
+    if (plantId) setPlantillaId(String(plantId))
+  }, [notifPreselect, estadosNotif, sol?.notif_estado_codigo, sol?.notif_plantilla])
 
   const updateObs = (idx, val) =>
     setFpcsObs((rows) => rows.map((r, i) => i === idx ? { ...r, observacion: val } : r))
@@ -49,7 +110,7 @@ function NotifForm({ tipo, sol, formularios, open, onClose }) {
   const handleGenerar = async () => {
     setLoading(true)
     try {
-      const commonData = { lugar, fecha, cite, estadoResultado, fpcs: fpcsObs, firmaNombre, firmaCargo }
+      const commonData = { lugar, fecha, cite, estadoResultado: estadoNombre, textoObservacion, fpcs: fpcsObs, firmaNombre, firmaCargo }
       const blob = await pdf(
         isAse
           ? <NotificacionAsePDF data={{ ...commonData, asegurado: sol?.asegurado || {} }} />
@@ -107,10 +168,49 @@ function NotifForm({ tipo, sol, formularios, open, onClose }) {
               <TextField size="small" fullWidth label="CITE" value={cite} onChange={(e) => setCite(e.target.value)} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField size="small" fullWidth label="Estado / Resultado de la solicitud"
-                value={estadoResultado} onChange={(e) => setEstadoResultado(e.target.value)}
-                helperText='Ej: APROBADA, RECHAZADA, OBSERVADA' />
+              <TextField
+                select size="small" fullWidth
+                label="Estado / Resultado de la solicitud"
+                value={estadoId}
+                onChange={(e) => setEstadoId(e.target.value)}
+              >
+                <MenuItem value=""><em>— Seleccione un estado —</em></MenuItem>
+                {estadosNotif.map((e) => (
+                  <MenuItem key={e.id} value={e.id} sx={{ color: COLOR_POR_CODIGO[e.codigo], fontWeight: 600 }}>
+                    {e.nombre}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
+
+            {plantillasDe.length > 0 && (
+              <Grid item xs={12}>
+                <TextField
+                  select size="small" fullWidth
+                  label="Texto modelo de observación"
+                  value={plantillaId}
+                  onChange={(e) => setPlantillaId(e.target.value)}
+                  helperText="Al seleccionar se pre-carga el texto en el campo de abajo"
+                >
+                  <MenuItem value=""><em>— Seleccione una plantilla —</em></MenuItem>
+                  {plantillasDe.map((p) => (
+                    <MenuItem key={p.id} value={String(p.id)}>{p.nombre}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            )}
+
+            {(estadoId || textoObservacion) && (
+              <Grid item xs={12}>
+                <TextField
+                  size="small" fullWidth multiline rows={4}
+                  label="Observación general (aparece en el PDF)"
+                  value={textoObservacion}
+                  onChange={(e) => setTextoObservacion(e.target.value)}
+                  placeholder="Escriba o seleccione una plantilla arriba para pre-cargar el texto…"
+                />
+              </Grid>
+            )}
 
             <Grid item xs={12} sx={{ mt: 1 }}>
               <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: 'uppercase' }}>
@@ -166,6 +266,14 @@ function NotifForm({ tipo, sol, formularios, open, onClose }) {
 
         {tab === 1 && (
           <Box>
+            <TextField
+              size="small" fullWidth multiline rows={3}
+              label="Observación general (aparece en el PDF)"
+              value={textoObservacion}
+              onChange={(e) => setTextoObservacion(e.target.value)}
+              placeholder="Escriba o seleccione una plantilla en la pestaña anterior para pre-cargar el texto…"
+              sx={{ mb: 2 }}
+            />
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
               Ingrese la observación para cada formulario FPC que aparecerá en la notificación.
             </Typography>
@@ -224,11 +332,12 @@ function NotifForm({ tipo, sol, formularios, open, onClose }) {
 }
 
 /* ── Fila de notificación: botón generar + botón subir firmado ─────── */
-function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc }) {
+function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc, notifPreselect }) {
   const isAse     = tipo === 'ase'
   const obsKey    = isAse ? OBS_ASE : OBS_EMP
-  const [open, setOpen]         = useState(false)
+  const [open, setOpen]           = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [descripcion, setDescripcion] = useState('')
   const fileRef   = useRef(null)
 
   const existingDoc = notifDocs.find((d) => d.observacion === obsKey)
@@ -246,6 +355,7 @@ function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc }) {
         await createDocumentoRespaldo(fd)
       }
       qc.invalidateQueries(['docs-respaldo', solId])
+      setDescripcion('')
       toast.success('Documento firmado adjuntado')
     } catch { toast.error('Error al subir el documento') }
     finally { setUploading(false) }
@@ -263,6 +373,14 @@ function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc }) {
       >
         {isAse ? 'Generar Notif. Asegurado' : 'Generar Notif. Empleador'}
       </Button>
+
+      {/* Descripción */}
+      <TextField
+        size="small" fullWidth
+        label="Descripción del documento"
+        value={descripcion}
+        onChange={(e) => setDescripcion(e.target.value)}
+      />
 
       {/* Subir documento firmado */}
       <Button
@@ -287,23 +405,25 @@ function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc }) {
         onChange={(e) => { if (e.target.files[0]) handleUpload(e.target.files[0]); e.target.value = '' }}
       />
 
-      {existingDoc?.archivo && (
-        <Chip
-          size="small"
-          icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
-          label={isAse ? 'Ver notif. Aseg. firmada' : 'Ver notif. Empl. firmada'}
-          component="a"
-          href={`${BASE_URL}${existingDoc.archivo}`}
-          target="_blank"
-          clickable
-          sx={{ bgcolor: `${ORO}22`, color: ORO, fontSize: '0.7rem', alignSelf: 'flex-start' }}
-        />
-      )}
+      <Button
+        fullWidth variant="outlined" size="small"
+        component={existingDoc?.archivo ? 'a' : 'button'}
+        href={existingDoc?.archivo}
+        target={existingDoc?.archivo ? '_blank' : undefined}
+        disabled={!existingDoc?.archivo}
+        startIcon={<AttachFileIcon />}
+        sx={{ borderColor: `${ORO}66`, color: ORO, justifyContent: 'flex-start', px: 2,
+          '&:hover': { bgcolor: `${ORO}18`, borderColor: ORO },
+          '&.Mui-disabled': { borderColor: '#2A3D6B', color: '#555' } }}
+      >
+        {isAse ? 'Ver doc. Asegurado firmado' : 'Ver doc. Empleador firmado'}
+      </Button>
 
       {open && (
         <NotifForm
           tipo={tipo} sol={sol} formularios={formularios}
           open onClose={() => setOpen(false)}
+          notifPreselect={notifPreselect}
         />
       )}
     </Box>
@@ -311,12 +431,12 @@ function NotifRow({ tipo, sol, formularios, solId, notifDocs, qc }) {
 }
 
 const NOTIF_CARDS = [
-  { tipo: 'ase', accent: '#4C9FE8', label: 'Notificación Asegurado',  Icon: PersonIcon },
-  { tipo: 'emp', accent: '#4CAF50', label: 'Notificación Empleador',   Icon: BusinessIcon },
+  { tipo: 'ase', accent: '#4C9FE8', label: 'Notificación Asegurado', Icon: PersonIcon },
+  { tipo: 'emp', accent: '#4CAF50', label: 'Notificación Empleador',  Icon: BusinessIcon },
 ]
 
 /* ── Panel principal ────────────────────────────────────────────────── */
-export default function NotificacionesPanel({ sol, formularios }) {
+export default function NotificacionesPanel({ sol, formularios, notifPreselect }) {
   const solId = sol?.id
   const qc    = useQueryClient()
 
@@ -334,7 +454,6 @@ export default function NotificacionesPanel({ sol, formularios }) {
       borderRadius: 2,
       overflow: 'hidden',
     }}>
-      {/* Encabezado externo */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.5, py: 1, bgcolor: `${ORO}10`, borderBottom: `1px solid ${ORO}33` }}>
         <NotificationsIcon sx={{ fontSize: 15, color: ORO }} />
         <Typography variant="caption" fontWeight={700} sx={{ color: ORO, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -370,7 +489,12 @@ export default function NotificacionesPanel({ sol, formularios }) {
                 {label}
               </Typography>
             </Box>
-            <NotifRow tipo={tipo} sol={sol} formularios={formularios} solId={solId} notifDocs={notifDocs} qc={qc} />
+
+            <NotifRow
+              tipo={tipo} sol={sol} formularios={formularios}
+              solId={solId} notifDocs={notifDocs} qc={qc}
+              notifPreselect={notifPreselect}
+            />
           </Box>
         ))}
       </Box>

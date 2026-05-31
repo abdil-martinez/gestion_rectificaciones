@@ -148,6 +148,9 @@ class SolicitudDetailSerializer(serializers.ModelSerializer):
     analista_nombre       = serializers.SerializerMethodField()
     usuario_creador_nombre = serializers.SerializerMethodField()
     vencida               = serializers.SerializerMethodField()
+    notif_estado_codigo   = serializers.CharField(source='notif_estado.codigo', read_only=True, default=None)
+    notif_plantilla_texto = serializers.CharField(source='notif_plantilla.texto', read_only=True, default=None)
+    notif_plantilla_nombre = serializers.CharField(source='notif_plantilla.nombre', read_only=True, default=None)
 
     class Meta:
         model  = Solicitud

@@ -4,6 +4,7 @@ from apps.catalogos.models import (
     AuditoriaModel, TipoSolicitud, TipoCausal, TipoPlanilla,
     TipoIdentificacion, Unidad, Regional, Administradora,
     AreaSolicitante, EstadoDocumentacion, Documento,
+    EstadoNotificacion, PlantillaObservacion,
 )
 
 ESTADO_CHOICES = [
@@ -171,6 +172,14 @@ class Solicitud(AuditoriaModel):
     fecha_resolucion    = models.DateField(null=True, blank=True)
     monto_total         = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     adjunto_resolución  = models.FileField(upload_to='resoluciones/', blank=True, null=True)
+    notif_estado        = models.ForeignKey(
+        EstadoNotificacion, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitudes_notif',
+    )
+    notif_plantilla     = models.ForeignKey(
+        PlantillaObservacion, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='solicitudes_notif',
+    )
 
     class Meta:
         verbose_name        = 'Solicitud'

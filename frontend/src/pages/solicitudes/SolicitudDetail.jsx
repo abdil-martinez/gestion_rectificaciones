@@ -6,7 +6,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, CircularProgress, Alert, IconButton, Tooltip,
   List, ListItem, ListItemText, ListItemIcon,
-  FormControl, InputLabel, Select, MenuItem,
+  FormControl, InputLabel, Select, MenuItem, FormHelperText,
   Table, TableHead, TableRow, TableCell, TableBody,
   Checkbox, Tabs, Tab,
 } from '@mui/material'
@@ -203,13 +203,27 @@ function FormulariosFPC({ solicitudId }) {
   )
 }
 
-function DocumentosRespaldo({ solicitudId }) {
+function DocumentosRespaldo({ solicitudId, tipoCausalId }) {
   const qc = useQueryClient()
 
-  const { data: catalogosDocs = [] } = useQuery({
+  const { data: catalogosDocsRaw = [] } = useQuery({
     queryKey: ['catalogo-documentos'],
     queryFn: () => catalogosApi.documentos.getAll().then((r) => r.data.results || r.data),
   })
+
+  const { data: tiposCausal = [] } = useQuery({
+    queryKey: ['tipo-causal'],
+    queryFn: () => catalogosApi.tipoCausal.getAll().then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+  })
+
+  const catalogosDocs = (() => {
+    if (!tipoCausalId) return catalogosDocsRaw
+    const causal = tiposCausal.find((c) => c.id === tipoCausalId)
+    if (!causal || !causal.documentos?.length) return catalogosDocsRaw
+    const permitidos = new Set(causal.documentos)
+    return catalogosDocsRaw.filter((d) => permitidos.has(d.id))
+  })()
 
   const { data: estadosDocs = [] } = useQuery({
     queryKey: ['estados-documentacion'],
@@ -349,8 +363,9 @@ function DocsSidebar({ solicitudId, sol }) {
   const [uploading,     setUploading]    = useState(false)
   const [xlsxLoading,   setXlsxLoading] = useState(false)
   const [formPdfLoading, setFormPdfLoading] = useState(false)
-  const [uploadingForm, setUploadingForm] = useState(false)
-  const [descripcion,   setDescripcion]  = useState('')
+  const [uploadingForm,    setUploadingForm]    = useState(false)
+  const [descripcion,      setDescripcion]      = useState('')
+  const [descripcionForm,  setDescripcionForm]  = useState('')
   const fileRef     = useRef(null)
   const formFileRef = useRef(null)
   const qc = useQueryClient()
@@ -486,9 +501,41 @@ function DocsSidebar({ solicitudId, sol }) {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, px: 1.5, py: 1, bgcolor: `${ORO}10`, borderBottom: `1px solid ${ORO}33` }}>
         <AttachFileIcon sx={{ fontSize: 15, color: ORO }} />
         <Typography variant="caption" fontWeight={700} sx={{ color: ORO, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          Documentos adjuntos
+          Formularios
         </Typography>
       </Box>
+
+      {/* ── Banner: documentación pendiente de firma ── */}
+      {(() => {
+        const pendientes = []
+        if (!docsRespaldo.some(d => !NOTIF_KEYS.includes(d.observacion) && d.observacion !== 'FORM_REGULARIZACION' && d.archivo))
+          pendientes.push('Form Interno')
+        if (!docsRespaldo.some(d => d.observacion === 'FORM_REGULARIZACION' && d.archivo))
+          pendientes.push('Form. Regularización')
+        if (!docsRespaldo.some(d => d.observacion === '__NOTIF_ASE__' && d.archivo))
+          pendientes.push('Notif. Asegurado')
+        if (!docsRespaldo.some(d => d.observacion === '__NOTIF_EMP__' && d.archivo))
+          pendientes.push('Notif. Empleador')
+        if (pendientes.length === 0) return null
+        return (
+          <Alert
+            severity="warning"
+            sx={{
+              borderRadius: 0,
+              py: 0.5,
+              fontSize: '0.75rem',
+              bgcolor: '#2a1f00',
+              color: '#ffcc66',
+              '& .MuiAlert-icon': { color: '#ffcc66', fontSize: 16, alignItems: 'center' },
+            }}
+          >
+            <strong>Documentación pendiente de firma:</strong>
+            <Box component="ul" sx={{ m: 0, pl: 2, mt: 0.3 }}>
+              {pendientes.map(p => <Box component="li" key={p}>{p}</Box>)}
+            </Box>
+          </Alert>
+        )
+      })()}
 
       {/* ── Tabs ── */}
       <Tabs
@@ -528,7 +575,7 @@ function DocsSidebar({ solicitudId, sol }) {
             onClick={handleDescargarPDF}
             sx={{ mb: 1.5, borderColor: ORO, color: ORO, '&:hover': { borderColor: ORO, bgcolor: `${ORO}18` } }}
           >
-            {pdfLoading ? 'Generando…' : 'Descargar Solicitud PDF'}
+            {pdfLoading ? 'Generando…' : 'Descargar Form Interno PDF'}
           </Button>
 
           {(() => {
@@ -566,7 +613,7 @@ function DocsSidebar({ solicitudId, sol }) {
                               label="Ver / Descargar"
                               size="small"
                               component="a"
-                              href={`http://localhost:8000${doc.archivo}`}
+                              href={`{doc.archivo}`}
                               target="_blank"
                               clickable
                               icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
@@ -601,7 +648,7 @@ function DocsSidebar({ solicitudId, sol }) {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 1.2 }}>
             <UploadFileIcon sx={{ fontSize: 15, color: ORO }} />
             <Typography variant="caption" fontWeight={700} sx={{ color: ORO, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Subir documento adicional
+              Subir formulario interno
             </Typography>
           </Box>
         <TextField
@@ -645,6 +692,26 @@ function DocsSidebar({ solicitudId, sol }) {
         >
           {uploading ? 'Subiendo…' : 'Seleccionar archivo'}
         </Button>
+        {(() => {
+          const ultimo = docsRespaldo
+            .filter(d => !NOTIF_KEYS.includes(d.observacion) && d.observacion !== 'FORM_REGULARIZACION' && d.archivo)
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+          return (
+            <Button
+              fullWidth size="small" variant="outlined"
+              component={ultimo ? 'a' : 'button'}
+              href={ultimo?.archivo}
+              target={ultimo ? '_blank' : undefined}
+              disabled={!ultimo}
+              startIcon={<AttachFileIcon />}
+              sx={{ mt: 1, borderColor: `${ORO}66`, color: ORO, justifyContent: 'flex-start',
+                '&:hover': { bgcolor: `${ORO}18`, borderColor: ORO },
+                '&.Mui-disabled': { borderColor: '#2A3D6B', color: '#555' } }}
+            >
+              Ver último doc. subido
+            </Button>
+          )
+        })()}
         </Box>
 
       </Box>
@@ -692,9 +759,13 @@ function DocsSidebar({ solicitudId, sol }) {
               Subir formulario firmado
             </Typography>
           </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-            Adjunta el formulario completado y firmado por el asegurado.
-          </Typography>
+          <TextField
+            size="small" fullWidth
+            label="Descripción del documento"
+            value={descripcionForm}
+            onChange={(e) => setDescripcionForm(e.target.value)}
+            sx={{ mb: 1 }}
+          />
           <input
             type="file"
             ref={formFileRef}
@@ -712,6 +783,7 @@ function DocsSidebar({ solicitudId, sol }) {
                 fd.append('observacion', 'FORM_REGULARIZACION')
                 await createDocumentoRespaldo(fd)
                 qc.invalidateQueries(['docs-respaldo', solicitudId])
+                setDescripcionForm('')
                 toast.success('Formulario adjuntado')
               } catch {
                 toast.error('Error al subir el formulario')
@@ -729,6 +801,26 @@ function DocsSidebar({ solicitudId, sol }) {
           >
             {uploadingForm ? 'Subiendo…' : 'Seleccionar archivo'}
           </Button>
+          {(() => {
+            const ultimoForm = docsRespaldo
+              .filter(d => d.observacion === 'FORM_REGULARIZACION' && d.archivo)
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0]
+            return (
+              <Button
+                fullWidth size="small" variant="outlined"
+                component={ultimoForm ? 'a' : 'button'}
+                href={ultimoForm?.archivo}
+                target={ultimoForm ? '_blank' : undefined}
+                disabled={!ultimoForm}
+                startIcon={<AttachFileIcon />}
+                sx={{ mt: 1, borderColor: `${ORO}66`, color: ORO, justifyContent: 'flex-start',
+                  '&:hover': { bgcolor: `${ORO}18`, borderColor: ORO },
+                  '&.Mui-disabled': { borderColor: '#2A3D6B', color: '#555' } }}
+              >
+                Ver formulario firmado subido
+              </Button>
+            )
+          })()}
         </Box>
 
         {/* Lista de formularios ya subidos */}
@@ -752,7 +844,7 @@ function DocsSidebar({ solicitudId, sol }) {
                         label="Ver / Descargar"
                         size="small"
                         component="a"
-                        href={`http://localhost:8000${doc.archivo}`}
+                        href={`{doc.archivo}`}
                         target="_blank"
                         clickable
                         icon={<AttachFileIcon sx={{ fontSize: '13px !important' }} />}
@@ -797,6 +889,9 @@ export default function SolicitudDetail() {
   const [comentario, setComentario]         = useState('')
   const [analistaId, setAnalistaId]         = useState('')
   const [tipoRegionalAsig, setTipoRegionalAsig] = useState('')
+  const [motivoEstadoId, setMotivoEstadoId] = useState('')
+  const [plantillaMotivoId, setPlantillaMotivoId] = useState('')
+  const [notifPreselect, setNotifPreselect] = useState(null)
   const [saving, setSaving]                 = useState(false)
 
   const { data: sol, isLoading } = useQuery({
@@ -836,6 +931,26 @@ export default function SolicitudDetail() {
     enabled:  nuevoEstado === 'ASIG',
   })
 
+  const ESTADOS_CON_MOTIVO = ['RECT', 'RECH', 'DEV']
+
+  const { data: estadosNotifMotivo = [] } = useQuery({
+    queryKey: ['estado-notificacion'],
+    queryFn:  () => catalogosApi.estadoNotificacion.getAll({ page_size: 100 }).then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+    enabled:  ESTADOS_CON_MOTIVO.includes(nuevoEstado),
+  })
+
+  const { data: plantillasMotivo = [] } = useQuery({
+    queryKey: ['plantilla-observacion'],
+    queryFn:  () => catalogosApi.plantillaObservacion.getAll({ page_size: 200 }).then((r) => r.data.results || r.data),
+    staleTime: 10 * 60_000,
+    enabled:  ESTADOS_CON_MOTIVO.includes(nuevoEstado),
+  })
+
+  const plantillasDeMotivoEstado = motivoEstadoId
+    ? plantillasMotivo.filter((p) => p.estado_notificacion === Number(motivoEstadoId))
+    : []
+
   const transiciones = transicionesData?.transiciones || []
 
   const BOTON_TRANSICION = {
@@ -862,20 +977,44 @@ export default function SolicitudDetail() {
     try {
       const payload = { estado: nuevoEstado, comentario }
       if (nuevoEstado === 'ASIG') payload.analista_asignado = analistaId
+      if (ESTADOS_CON_MOTIVO.includes(nuevoEstado)) {
+        payload.notif_estado_id    = motivoEstadoId    || null
+        payload.notif_plantilla_id = plantillaMotivoId || null
+      }
       await cambiarEstado(id, payload)
       await queryClient.invalidateQueries(['solicitud', id])
       await queryClient.invalidateQueries(['bitacora', id])
       await queryClient.invalidateQueries(['transiciones', id])
       toast.success('Estado actualizado correctamente')
+      // Si había motivo seleccionado, pre-cargarlo en el panel de notificaciones
+      if (ESTADOS_CON_MOTIVO.includes(nuevoEstado) && motivoEstadoId) {
+        const estadoObj = estadosNotifMotivo.find((e) => e.id === Number(motivoEstadoId))
+        setNotifPreselect({
+          estadoCodigo: estadoObj?.codigo || '',
+          plantillaId:  plantillaMotivoId || '',
+        })
+      }
       setCambioOpen(false)
       setComentario('')
       setNuevoEstado('')
       setAnalistaId('')
+      setMotivoEstadoId('')
+      setPlantillaMotivoId('')
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Error al cambiar estado')
     } finally {
       setSaving(false)
     }
+  }
+
+  const closeCambioDialog = () => {
+    setCambioOpen(false)
+    setComentario('')
+    setNuevoEstado('')
+    setAnalistaId('')
+    setTipoRegionalAsig('')
+    setMotivoEstadoId('')
+    setPlantillaMotivoId('')
   }
 
   if (isLoading) return <LoadingSpinner message="Cargando solicitud..." fullHeight />
@@ -1014,7 +1153,7 @@ export default function SolicitudDetail() {
 
         {/* Documentos de Respaldo */}
         <Grid item xs={12}>
-          <DocumentosRespaldo solicitudId={sol.id} />
+          <DocumentosRespaldo solicitudId={sol.id} tipoCausalId={sol.tipo_causal} />
         </Grid>
 
         {/* Historial + Documentos adjuntos */}
@@ -1100,7 +1239,7 @@ export default function SolicitudDetail() {
                   <DocsSidebar solicitudId={sol.id} sol={sol} />
 
                   <Divider sx={{ my: 2.5, borderColor: '#2A3D6B' }} />
-                  <NotificacionesPanel sol={sol} formularios={formularios} />
+                  <NotificacionesPanel sol={sol} formularios={formularios} notifPreselect={notifPreselect} />
                 </Grid>
 
               </Grid>
@@ -1110,7 +1249,7 @@ export default function SolicitudDetail() {
       </Grid>
 
       {/* Change State Dialog */}
-      <Dialog open={cambioOpen} onClose={() => { setCambioOpen(false); setComentario(''); setAnalistaId(''); setTipoRegionalAsig('') }} maxWidth="sm" fullWidth>
+      <Dialog open={cambioOpen} onClose={closeCambioDialog} maxWidth="sm" fullWidth>
         <DialogTitle fontWeight={700}>
           {BOTON_TRANSICION[nuevoEstado]?.label || nuevoEstado} — SOL-{sol.numero_solicitud}
         </DialogTitle>
@@ -1169,6 +1308,50 @@ export default function SolicitudDetail() {
               </FormControl>
             </>
           )}
+          {/* Selects de motivo — solo para RECT, RECH y DEV */}
+          {ESTADOS_CON_MOTIVO.includes(nuevoEstado) && estadosNotifMotivo.length > 0 && (
+            <Box sx={{ mb: 2, p: 1.5, border: '1px solid #2A3D6B', borderRadius: 1, bgcolor: 'rgba(15,25,50,0.4)' }}>
+              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ textTransform: 'uppercase', display: 'block', mb: 1.5, letterSpacing: '0.06em' }}>
+                Motivo / Plantilla de texto
+              </Typography>
+              <FormControl fullWidth size="small" sx={{ mb: plantillasDeMotivoEstado.length > 0 ? 1.5 : 0 }}>
+                <InputLabel>Tipo de motivo</InputLabel>
+                <Select
+                  value={motivoEstadoId}
+                  label="Tipo de motivo"
+                  onChange={(e) => { setMotivoEstadoId(e.target.value); setPlantillaMotivoId('') }}
+                >
+                  <MenuItem value=""><em>— Sin especificar —</em></MenuItem>
+                  {estadosNotifMotivo.map((e) => (
+                    <MenuItem key={e.id} value={e.id}>{e.nombre}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {plantillasDeMotivoEstado.length > 0 && (
+                <FormControl fullWidth size="small">
+                  <InputLabel>Texto modelo</InputLabel>
+                  <Select
+                    value={plantillaMotivoId}
+                    label="Texto modelo"
+                    onChange={(e) => {
+                      const pid = e.target.value
+                      setPlantillaMotivoId(pid)
+                      const p = plantillasMotivo.find((p) => p.id === Number(pid))
+                      if (p) setComentario(p.texto)
+                    }}
+                  >
+                    <MenuItem value=""><em>— Seleccionar plantilla —</em></MenuItem>
+                    {plantillasDeMotivoEstado.map((p) => (
+                      <MenuItem key={p.id} value={p.id}>{p.nombre}</MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>Al seleccionar se pre-carga el comentario</FormHelperText>
+                </FormControl>
+              )}
+            </Box>
+          )}
+
           <TextField
             fullWidth
             multiline
@@ -1178,11 +1361,11 @@ export default function SolicitudDetail() {
             onChange={(e) => setComentario(e.target.value)}
             required
             error={!comentario.trim() && saving}
-            helperText="Describa brevemente el motivo del cambio de estado."
+            helperText="Puede escribir libremente o pre-cargar desde una plantilla de arriba."
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          <Button onClick={() => setCambioOpen(false)} disabled={saving} variant="outlined" color="inherit">
+          <Button onClick={closeCambioDialog} disabled={saving} variant="outlined" color="inherit">
             Cancelar
           </Button>
           <Button

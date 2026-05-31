@@ -53,6 +53,7 @@ export default function NotificacionAsePDF({ data }) {
   const {
     lugar = 'La Paz', fecha, cite,
     asegurado = {}, estadoResultado = 'APROBADA',
+    textoObservacion = '',
     fpcs = [], firmaNombre = '', firmaCargo = '',
   } = data
 
@@ -123,6 +124,11 @@ export default function NotificacionAsePDF({ data }) {
               <Text style={[S.tCell, { width: '45%' }]}>{f.observacion || ''}</Text>
             </View>
           ))}
+
+          {/* Observación general */}
+          {!!textoObservacion && (
+            <Text style={[S.parrafo, { marginTop: 10 }]}>{textoObservacion}</Text>
+          )}
 
           {/* Cierre */}
           <Text style={S.cierre}>Atentamente,</Text>

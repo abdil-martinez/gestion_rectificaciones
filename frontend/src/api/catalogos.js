@@ -19,6 +19,8 @@ export const areaSolicitante        = makeEndpoint('area-solicitante')
 export const estadoPlazo            = makeEndpoint('estado-plazo')
 export const tipoPlanilla           = makeEndpoint('tipo-planilla')
 export const estadoDocumentacion    = makeEndpoint('estado-documentacion')
+export const estadoNotificacion     = makeEndpoint('estado-notificacion')
+export const plantillaObservacion   = makeEndpoint('plantilla-observacion')
 export const documentos             = makeEndpoint('documentos')
 export const regionales             = makeEndpoint('regionales')
 export const agencias               = makeEndpoint('agencias')
@@ -27,5 +29,5 @@ export default {
   tipoSolicitud, administradoras, categoriaCausal, tipoCausal, unidades, tipoRegional,
   tipoIdentificacion, areaSolicitante,
   estadoPlazo, tipoPlanilla, estadoDocumentacion, documentos,
-  regionales, agencias,
+  estadoNotificacion, plantillaObservacion, regionales, agencias,
 }

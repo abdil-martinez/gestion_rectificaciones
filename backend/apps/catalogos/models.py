@@ -119,6 +119,12 @@ class TipoCausal(AuditoriaModel):
         null=True, blank=True,
         related_name='causales',
     )
+    documentos = models.ManyToManyField(
+        'Documento',
+        blank=True,
+        related_name='causales',
+        verbose_name='Documentos requeridos',
+    )
 
     class Meta:
         verbose_name        = 'Tipo de Causal'
@@ -245,6 +251,40 @@ class Documento(AuditoriaModel):
 
     def __str__(self):
         return f"{self.codigo} - {self.descripcion}"
+
+
+class EstadoNotificacion(AuditoriaModel):
+    nombre = models.CharField(max_length=100)
+    codigo = models.CharField(max_length=20)
+
+    class Meta:
+        verbose_name        = 'Estado de Notificación'
+        verbose_name_plural = 'Estados de Notificación'
+        ordering            = ['nombre']
+        constraints         = [
+            models.UniqueConstraint(fields=['codigo'], condition=Q(deleted_at__isnull=True), name='unique_estadonotificacion_codigo_active'),
+        ]
+
+    def __str__(self):
+        return self.nombre
+
+
+class PlantillaObservacion(AuditoriaModel):
+    estado_notificacion = models.ForeignKey(
+        EstadoNotificacion,
+        on_delete=models.CASCADE,
+        related_name='plantillas',
+    )
+    nombre = models.CharField(max_length=200)
+    texto  = models.TextField()
+
+    class Meta:
+        verbose_name        = 'Plantilla de Observación'
+        verbose_name_plural = 'Plantillas de Observación'
+        ordering            = ['estado_notificacion__nombre', 'nombre']
+
+    def __str__(self):
+        return f"{self.estado_notificacion.nombre} — {self.nombre}"
 
 
 class Regional(AuditoriaModel):

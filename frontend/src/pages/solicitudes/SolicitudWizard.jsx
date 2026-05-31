@@ -554,12 +554,25 @@ function StepDetalle({ control, errors, setValue, getValues }) {
 const PERIODO_RE = /^\d{4}-(0[1-9]|1[0-2])$/
 const isValidPeriodo = (p) => !p || PERIODO_RE.test(p)
 
-function StepFormularios({ fpcRows, setFpcRows, docSelections, setDocSelections }) {
+function StepFormularios({ fpcRows, setFpcRows, docSelections, setDocSelections, tipoCausalId }) {
   const fileRefs = useRef({})
   const [periodoBlurred, setPeriodoBlurred] = React.useState({})
 
-  const { data: tiposPlanilla = [] } = useQuery({ queryKey: ['tipo-planilla'],       queryFn: () => catalogosApi.tipoPlanilla.getAll().then((r) => r.data.results || r.data) })
-  const { data: catalogosDocs = [] } = useQuery({ queryKey: ['catalogo-documentos'], queryFn: () => catalogosApi.documentos.getAll().then((r) => r.data.results || r.data) })
+  const { data: tiposPlanilla = [] }    = useQuery({ queryKey: ['tipo-planilla'],       queryFn: () => catalogosApi.tipoPlanilla.getAll().then((r) => r.data.results || r.data) })
+  const { data: catalogosDocsRaw = [] } = useQuery({ queryKey: ['catalogo-documentos'], queryFn: () => catalogosApi.documentos.getAll().then((r) => r.data.results || r.data) })
+  const { data: tiposCausal = [] }      = useQuery({ queryKey: ['tipo-causal'],          queryFn: () => catalogosApi.tipoCausal.getAll().then((r) => r.data.results || r.data), staleTime: 10 * 60_000 })
+
+  const catalogosDocs = React.useMemo(() => {
+    if (!tipoCausalId) return catalogosDocsRaw
+    const causal = tiposCausal.find((c) => c.id === Number(tipoCausalId))
+    if (!causal || !causal.documentos?.length) return catalogosDocsRaw
+    const permitidos = new Set(causal.documentos)
+    return catalogosDocsRaw.filter((d) => permitidos.has(d.id))
+  }, [tipoCausalId, tiposCausal, catalogosDocsRaw])
+
+  React.useEffect(() => {
+    setDocSelections({})
+  }, [tipoCausalId])
 
   const emptyFpc = () => ({ numero: '', periodo: '', tipo_planilla: '', total_ganado: '' })
   const addFpc    = () => setFpcRows((r) => [...r, emptyFpc()])
@@ -1008,7 +1021,7 @@ export default function SolicitudWizard() {
   const [fpcRows, setFpcRows]       = useState([])
   const [docSelections, setDocSelections] = useState({})
 
-  const { control, handleSubmit, getValues, setValue, trigger, formState: { errors } } =
+  const { control, handleSubmit, getValues, setValue, trigger, watch, formState: { errors } } =
     useForm({
       defaultValues: {
         asegurado_data:  { cua: '', tipo_identificacion: '', cedula: '', tipo_persona: 'NAT', nombre: '', ap_paterno: '', ap_materno: '', celular: '' },
@@ -1030,6 +1043,8 @@ export default function SolicitudWizard() {
     const sub = setInterval(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(getValues())) }, 5000)
     return () => clearInterval(sub)
   }, [getValues])
+
+  const watchedTipoCausal = watch('tipo_causal')
 
   const FIELDS_BY_STEP = {
     0: ['asegurado_data.cedula', 'asegurado_data.nombre'],
@@ -1106,7 +1121,7 @@ export default function SolicitudWizard() {
     <StepAsegurado   key={0} control={control} errors={errors} setValue={setValue} />,
     <StepEmpleador   key={1} control={control} errors={errors} setValue={setValue} />,
     <StepDetalle     key={2} control={control} errors={errors} setValue={setValue} getValues={getValues} />,
-    <StepFormularios key={3} fpcRows={fpcRows} setFpcRows={setFpcRows} docSelections={docSelections} setDocSelections={setDocSelections} />,
+    <StepFormularios key={3} fpcRows={fpcRows} setFpcRows={setFpcRows} docSelections={docSelections} setDocSelections={setDocSelections} tipoCausalId={watchedTipoCausal} />,
     <StepSolicitante key={4} control={control} />,
     <StepResumen     key={5} getValues={getValues} fpcRows={fpcRows} docSelections={docSelections} />,
   ]

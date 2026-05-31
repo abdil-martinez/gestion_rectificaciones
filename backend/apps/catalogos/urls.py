@@ -5,6 +5,7 @@ from .views import (
     TipoCausalViewSet, UnidadViewSet, TipoRegionalViewSet,
     TipoIdentificacionViewSet, AreaSolicitanteViewSet, EstadoPlazoViewSet,
     TipoPlanillaViewSet, EstadoDocumentacionViewSet, DocumentoViewSet,
+    EstadoNotificacionViewSet, PlantillaObservacionViewSet,
     RegionalViewSet, AgenciaViewSet,
 )
 
@@ -21,6 +22,8 @@ router.register('estado-plazo',            EstadoPlazoViewSet,            basena
 router.register('tipo-planilla',           TipoPlanillaViewSet,           basename='tipo-planilla')
 router.register('estado-documentacion',    EstadoDocumentacionViewSet,    basename='estado-documentacion')
 router.register('documentos',              DocumentoViewSet,              basename='documentos')
+router.register('estado-notificacion',     EstadoNotificacionViewSet,     basename='estado-notificacion')
+router.register('plantilla-observacion',   PlantillaObservacionViewSet,   basename='plantilla-observacion')
 router.register('regionales',              RegionalViewSet,               basename='regionales')
 router.register('agencias',               AgenciaViewSet,                basename='agencias')
 

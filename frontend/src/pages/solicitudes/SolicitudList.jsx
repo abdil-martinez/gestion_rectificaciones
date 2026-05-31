@@ -16,6 +16,7 @@ import AssignmentReturnIcon from '@mui/icons-material/AssignmentReturn'
 import ListAltIcon from '@mui/icons-material/ListAlt'
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount'
 import BusinessIcon from '@mui/icons-material/Business'
+import PublicIcon from '@mui/icons-material/Public'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import { getSolicitudes, exportarExcel, cambiarEstado } from '../../api/solicitudes'
@@ -152,17 +153,16 @@ export default function SolicitudList() {
     fecha_hasta:             fechaHasta || undefined,
     // Filtros de regional: el manual tiene precedencia; si no, aplicar default por tab
     regional__tipo_regional: tipoRegional
-      || (isAnalist && activeTab === 0 ? user?.tipo_regional : undefined)
+      || (isAnalist && activeTab === 1 ? user?.tipo_regional : undefined)
       || undefined,
     regional: regional
-      || (isAnalist && activeTab === 1 ? user?.regional : undefined)
+      || (isAnalist && activeTab === 2 ? user?.regional : undefined)
       || undefined,
     agencia:  agencia || undefined,
     plazo:    plazo   || undefined,
-    // Tab 0 y 1 del analista: vista pública del tipo_regional/regional (todas=true sin filtro personal)
-    // Tab 2 del analista: solo sus solicitudes (analista_bandeja=true)
-    ...(isAnalist && activeTab !== 2 ? { todas: 'true' } : {}),
-    ...(isAnalist && activeTab === 2 ? { analista_bandeja: 'true' } : {}),
+    // Tabs 0,1,2: todas=true (vista pública); tab 3: solo solicitudes propias
+    ...(isAnalist && activeTab !== 3 ? { todas: 'true' } : {}),
+    ...(isAnalist && activeTab === 3 ? { analista_bandeja: 'true' } : {}),
   }
 
   const { data, isLoading } = useQuery({
@@ -303,29 +303,29 @@ export default function SolicitudList() {
             sx={{ '& .Mui-selected': { color: `${ORO} !important` }, '& .MuiTabs-indicator': { backgroundColor: ORO } }}
           >
             <Tab
-              icon={<ListAltIcon sx={{ fontSize: 18 }} />}
+              icon={<PublicIcon sx={{ fontSize: 18 }} />}
               iconPosition="start"
-              label={isAnalist
-                ? (user?.tipo_regional_nombre ? `Solicitudes ${user.tipo_regional_nombre}` : 'Mi Tipo de Regional')
-                : 'Todas las solicitudes'}
+              label="Todas las Regionales"
               sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
             />
-            {isAnalist && (
-              <Tab
-                icon={<BusinessIcon sx={{ fontSize: 18 }} />}
-                iconPosition="start"
-                label={user?.regional_nombre ? `Solicitudes ${user.regional_nombre}` : 'Mi Regional'}
-                sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
-              />
-            )}
-            {isAnalist && (
-              <Tab
-                icon={<SupervisorAccountIcon sx={{ fontSize: 18 }} />}
-                iconPosition="start"
-                label="Mis Solicitudes"
-                sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
-              />
-            )}
+            <Tab
+              icon={<ListAltIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={user?.tipo_regional_nombre ? `Solicitudes ${user.tipo_regional_nombre}` : 'Mi Tipo de Regional'}
+              sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+            />
+            <Tab
+              icon={<BusinessIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label={user?.regional_nombre ? `Solicitudes ${user.regional_nombre}` : 'Mi Regional'}
+              sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+            />
+            <Tab
+              icon={<SupervisorAccountIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label="Mis Solicitudes"
+              sx={{ minHeight: 48, textTransform: 'none', fontWeight: 600 }}
+            />
           </Tabs>
         </Box>
       )}
@@ -490,11 +490,13 @@ export default function SolicitudList() {
                   {rows.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={canBulkAssign ? 17 : 16} align="center" sx={{ py: 4, color: 'text.secondary' }}>
-                        {isAnalist && activeTab === 0
+                        {isAnalist && activeTab === 1
                           ? 'No se encontraron solicitudes en su tipo de regional.'
-                          : isAnalist && activeTab === 1
-                            ? 'No se encontraron solicitudes en su agencia.'
-                            : 'No se encontraron solicitudes con los filtros aplicados.'}
+                          : isAnalist && activeTab === 2
+                            ? 'No se encontraron solicitudes en su regional.'
+                            : isAnalist && activeTab === 3
+                              ? 'No tiene solicitudes asignadas.'
+                              : 'No se encontraron solicitudes con los filtros aplicados.'}
                       </TableCell>
                     </TableRow>
                   )}

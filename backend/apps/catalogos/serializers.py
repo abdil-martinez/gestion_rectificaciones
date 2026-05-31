@@ -4,7 +4,7 @@ from .models import (
     TipoSolicitud, Administradora, CategoriaCausal, TipoCausal, Unidad, TipoRegional,
     TipoIdentificacion, AreaSolicitante,
     EstadoPlazo, TipoPlanilla, EstadoDocumentacion, Documento,
-    Regional, Agencia,
+    EstadoNotificacion, PlantillaObservacion, Regional, Agencia,
 )
 
 
@@ -50,6 +50,11 @@ class CategoriaCausalSerializer(AuditoriaReadMixin):
 
 class TipoCausalSerializer(AuditoriaReadMixin):
     tipo_nombre = serializers.CharField(source='tipo.nombre', read_only=True, default=None)
+    documentos  = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Documento.objects.all(),
+        required=False,
+    )
 
     class Meta:
         model  = TipoCausal
@@ -134,6 +139,27 @@ class DocumentoSerializer(AuditoriaReadMixin):
 
     class Meta:
         model  = Documento
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
+
+
+class EstadoNotificacionSerializer(AuditoriaReadMixin):
+    codigo = serializers.CharField(
+        max_length=20,
+        validators=[UniqueValidator(queryset=EstadoNotificacion.objects.all(), message='Ya existe un Estado de Notificación con ese código.')],
+    )
+
+    class Meta:
+        model  = EstadoNotificacion
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
+
+
+class PlantillaObservacionSerializer(AuditoriaReadMixin):
+    estado_notificacion_nombre = serializers.CharField(source='estado_notificacion.nombre', read_only=True)
+
+    class Meta:
+        model  = PlantillaObservacion
         fields = '__all__'
         read_only_fields = ['created_at', 'updated_at', 'deleted_at', 'usuario_creador', 'usuario_modificador', 'usuario_eliminador', 'usuario_creador_nombre']
 

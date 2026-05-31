@@ -174,8 +174,13 @@ class SolicitudViewSet(SoftDeleteMixin, viewsets.ModelViewSet):
         if not permitido:
             return Response({'detail': mensaje}, status=status.HTTP_403_FORBIDDEN)
 
-        estado_anterior = solicitud.estado
-        solicitud.estado = nuevo_estado
+        estado_anterior    = solicitud.estado
+        solicitud.estado   = nuevo_estado
+        notif_estado_id    = request.data.get('notif_estado_id')
+        notif_plantilla_id = request.data.get('notif_plantilla_id')
+        if notif_estado_id is not None:
+            solicitud.notif_estado_id    = notif_estado_id or None
+            solicitud.notif_plantilla_id = notif_plantilla_id or None
 
         if analista_id and nuevo_estado == 'ASIG':
             from apps.accounts.models import CustomUser

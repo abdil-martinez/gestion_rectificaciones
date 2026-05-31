@@ -48,6 +48,7 @@ export default function NotificacionEmpPDF({ data }) {
   const {
     lugar = 'La Paz', fecha, cite,
     empleador = {}, estadoResultado = 'APROBADA',
+    textoObservacion = '',
     fpcs = [], firmaNombre = '', firmaCargo = '',
   } = data
 
@@ -116,6 +117,11 @@ export default function NotificacionEmpPDF({ data }) {
               <Text style={[S.tCell, { width: '43%' }]}>{f.observacion || ''}</Text>
             </View>
           ))}
+
+          {/* Observación general */}
+          {!!textoObservacion && (
+            <Text style={[S.parrafo, { marginTop: 10 }]}>{textoObservacion}</Text>
+          )}
 
           <Text style={S.cierre}>Atentamente,</Text>
           <View style={S.firmaArea}>
